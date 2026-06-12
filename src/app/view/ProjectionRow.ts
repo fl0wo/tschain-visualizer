@@ -134,7 +134,7 @@ export class ProjectionRow {
 				);
 			cube.position.copy(base);
 
-			const label = new TextSprite(2.4);
+			const label = new TextSprite(3.2);
 			label.set([`+${formatBtc(tx.valueBtc)} BTC`], { color: '#ffffff' });
 			label.sprite.position.copy(base).add(new THREE.Vector3(0, 0.36, 0));
 			this.group.add(cube, label.sprite);

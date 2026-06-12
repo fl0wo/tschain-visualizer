@@ -207,7 +207,9 @@ export class BlockMesh {
 			new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(canvas), transparent: true }),
 		);
 		plane.rotation.x = -Math.PI / 2;
-		plane.rotation.z = -Math.PI / 4; // face the iso camera's azimuth
+		// 135°: the text baseline runs top-left corner → top-right corner
+		// of the face as seen from the iso camera (−45° reads upside down)
+		plane.rotation.z = (3 * Math.PI) / 4;
 		plane.position.y = SIZE / 2 + 0.012;
 		this.group.add(plane);
 	}
