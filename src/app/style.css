@@ -243,6 +243,140 @@ canvas {
 	color: var(--text-secondary);
 }
 
+/* ── left stack: narrator + mining race ────────────────────────────── */
+
+.left-stack {
+	position: fixed;
+	top: 48px;
+	left: 18px;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	width: 340px;
+	z-index: 5;
+}
+
+.narrator-title {
+	font-weight: 600;
+	font-size: 14px;
+	margin-bottom: 4px;
+}
+
+.narrator-title.narrator-success {
+	color: var(--valid);
+}
+
+.narrator-title.narrator-error {
+	color: var(--invalid);
+}
+
+.narrator-body {
+	color: var(--text-secondary);
+	line-height: 1.5;
+}
+
+.narrator-pulse {
+	animation: narrator-in var(--ticker-ms) ease;
+}
+
+@keyframes narrator-in {
+	from {
+		border-color: var(--text-secondary);
+	}
+	to {
+		border-color: var(--border);
+	}
+}
+
+/* ── miners panel ──────────────────────────────────────────────────── */
+
+.miners-note {
+	float: right;
+	font-size: 9px;
+	letter-spacing: 0.05em;
+	opacity: 0.6;
+	text-transform: none;
+}
+
+.miner-row {
+	display: grid;
+	grid-template-columns: 18px 52px 1fr;
+	grid-template-areas:
+		'icon name status'
+		'icon nonce nonce'
+		'icon cpu meta';
+	column-gap: 8px;
+	row-gap: 2px;
+	align-items: center;
+	padding: 6px 0;
+	border-bottom: 1px solid rgba(51, 51, 51, 0.4);
+	transition: opacity var(--hover-ms) ease;
+}
+
+.miner-row:last-child {
+	border-bottom: none;
+}
+
+.miner-row .identicon {
+	grid-area: icon;
+}
+
+.miner-name {
+	grid-area: name;
+	font-weight: 500;
+}
+
+.miner-status {
+	grid-area: status;
+	font-size: 11px;
+	color: var(--text-secondary);
+	text-align: right;
+}
+
+.miner-winner .miner-status {
+	color: var(--valid);
+	font-weight: 600;
+}
+
+.miner-loser {
+	opacity: 0.45;
+}
+
+.miner-nonce {
+	grid-area: nonce;
+	font-size: 11px;
+	color: var(--text-secondary);
+}
+
+.miner-nonce::before {
+	content: 'nonce ';
+	font-family: 'Geist', ui-sans-serif, sans-serif;
+}
+
+.miner-cpu {
+	grid-area: cpu;
+	height: 4px;
+	border-radius: 2px;
+	background: rgba(51, 51, 51, 0.6);
+	overflow: hidden;
+}
+
+.miner-cpu-fill {
+	display: block;
+	height: 100%;
+	width: 0%;
+	border-radius: 2px;
+	background: var(--active);
+	transition: width 120ms linear;
+}
+
+.miner-meta {
+	grid-area: meta;
+	font-size: 10px;
+	color: var(--text-secondary);
+	text-align: right;
+}
+
 /* ── bottom ticker ─────────────────────────────────────────────────── */
 
 .ticker {
@@ -427,6 +561,7 @@ canvas {
 	.odometer-tick,
 	.callout-card,
 	.right-stack-panels,
+	.narrator-pulse,
 	.status-dot[data-state='invalid'] {
 		animation: none;
 	}

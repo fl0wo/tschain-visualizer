@@ -14,11 +14,12 @@ import { TxCubeMesh } from './TxCubeMesh';
 import { updateEdgeResolutions } from './edgeMaterials';
 import { compensateLabelZoom } from './labels';
 import { ConfirmationAnimation } from './animations/ConfirmationAnimation';
+import { TextSprite } from './animations/TextSprite';
 import { MiningAnimation } from './animations/MiningAnimation';
 import { SigningAnimation } from './animations/SigningAnimation';
 import { TamperAnimation } from './animations/TamperAnimation';
 import { VerificationAnimation } from './animations/VerificationAnimation';
-import { prefersReducedMotion, theme } from './theme';
+import { cssColor, prefersReducedMotion, theme } from './theme';
 import { Tweens } from './tween';
 
 /**
@@ -368,6 +369,27 @@ export class SceneView {
 		this.requestFollow(blockPosition(info.index).x);
 	}
 
+	/**
+	 * A `+N → miner` reward float rising off a freshly mined block — the
+	 * little paycheck moment that explains WHY anyone mines at all.
+	 */
+	celebrateReward(blockIndex: number, text: string): void {
+		const label = new TextSprite(3.2);
+		label.set([text], { color: cssColor(theme.colors.valid) });
+		const base = blockPosition(blockIndex);
+		label.sprite.position.set(base.x, base.y + theme.layout.cubeSize, base.z);
+		this.scene.add(label.sprite);
+		void this.tweens
+			.run(1.6, (t) => {
+				label.sprite.position.y = base.y + theme.layout.cubeSize + t * 1.4;
+				label.opacity = t < 0.6 ? 1 : 1 - (t - 0.6) / 0.4;
+			})
+			.finished.then(() => {
+				this.scene.remove(label.sprite);
+				label.dispose();
+			});
+	}
+
 	// ── validation / tamper display ────────────────────────────────────
 
 	/**
@@ -628,22 +650,31 @@ export class SceneView {
 		if (picked.tx) {
 			const tx = picked.tx;
 			const sig = tx.coinbase
-				? '<span class="muted">coinbase — minted, no signature</span>'
+				? '<span class="muted">coinbase — minted by the protocol, no signature</span>'
 				: tx.signatureValid
 					? '<span class="ok">signature verified</span>'
 					: '<span class="bad">signature invalid</span>';
+			const fee = tx.coinbase
+				? `<div class="muted">block reward + collected fees</div>`
+				: `<div class="muted">fee <span class="mono">${tx.fee}</span> → goes to the miner</div>`;
 			return (
 				`<div class="card-title">${tx.fromName} → ${tx.toName}</div>` +
 				`<div class="card-amount">${tx.amount}</div>` +
+				fee +
 				`<div class="mono muted">${shortHash(tx.hash)}</div>` +
 				`<div>${sig}</div>`
 			);
 		}
 		const block = picked.block!;
+		const coinbase = block.transactions.find((tx) => tx.coinbase);
+		const reward = coinbase
+			? `<div class="muted">paid <span class="mono">${coinbase.amount}</span> to ${coinbase.toName}</div>`
+			: '';
 		return (
 			`<div class="card-title">${block.index === 0 ? 'genesis block' : `block #${block.index}`}</div>` +
 			`<div class="mono muted">${shortHash(block.hash)}</div>` +
-			`<div class="muted">nonce <span class="mono">${block.nonce.toLocaleString('en-US')}</span> · ${block.transactions.length} tx</div>`
+			`<div class="muted">nonce <span class="mono">${block.nonce.toLocaleString('en-US')}</span> · ${block.transactions.length} tx</div>` +
+			reward
 		);
 	}
 

@@ -1,3 +1,5 @@
+import { MinersPanel } from './MinersPanel';
+import { Narrator } from './Narrator';
 import { identiconDataUrl } from './identicon';
 
 /**
@@ -18,6 +20,10 @@ export class Hud {
 	/** Composition root wires this to SceneView.setPostProcessing —
 	 *  the HUD doesn't know what "magic shaders" are, it just reports. */
 	onMagicToggle: ((enabled: boolean) => void) | null = null;
+
+	/** the educational layer: phase explainer + the mining race panel */
+	readonly narrator: Narrator;
+	readonly miners: MinersPanel;
 
 	private readonly statusDot: HTMLElement;
 	private readonly wallets: HTMLElement;
@@ -104,6 +110,14 @@ export class Hud {
 		this.ticker = document.createElement('div');
 		this.ticker.className = 'ticker';
 		root.appendChild(this.ticker);
+
+		// left stack under the wordmark: the narrator explains the current
+		// phase, the miners panel shows the PoW race behind each block
+		const leftStack = document.createElement('div');
+		leftStack.className = 'left-stack';
+		root.appendChild(leftStack);
+		this.narrator = new Narrator(leftStack);
+		this.miners = new MinersPanel(leftStack);
 	}
 
 	setWallets(balances: ReadonlyArray<{ name: string; address: string; balance: number }>): void {

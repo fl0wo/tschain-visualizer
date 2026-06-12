@@ -124,24 +124,30 @@ export class Simulation {
 		const available = sender.balance - reserved;
 
 		// ~1 in 8 payments deliberately overspends. The rejection (and the
-		// red falling sphere) is part of the show: signatures alone don't
+		// red falling cube) is part of the show: signatures alone don't
 		// make money behave — the mempool's checks do.
 		const overspend = Math.random() < 0.125;
 		const amount = overspend
 			? Math.max(available, 1) + Math.ceil(Math.random() * 50)
 			: Math.ceil(Math.random() * Math.max(available * 0.4, 1));
+		// every payment tips the miner 1–3: the incentive to be included
+		const fee = 1 + Math.floor(Math.random() * 3);
 
-		if (!overspend && available < 1) return; // genuinely broke: skip the beat
-		this.model.submitTransaction(sender.name, receiver, amount);
+		if (!overspend && available < amount + fee) return; // genuinely broke: skip the beat
+		this.model.submitTransaction(sender.name, receiver, amount, fee);
 	}
 
 	private async mine(): Promise<void> {
 		if (this.mining) return;
 		this.mining = true;
 		try {
-			const names = this.model.walletNames;
-			const miner = names[Math.floor(Math.random() * names.length)]!;
-			await this.model.mine(miner);
+			// The race: a shuffled subset of wallets compete; whoever is
+			// drawn first "finds the nonce". The view animates them all —
+			// the losers' discarded work is half the lesson.
+			const shuffled = [...this.model.walletNames].sort(() => Math.random() - 0.5);
+			const racers = shuffled.slice(0, Math.max(2, Math.min(4, shuffled.length)));
+			const winner = racers[0]!;
+			await this.model.mine(winner, racers);
 			// Ambient validation keeps the HUD's verdict fresh (and would
 			// catch any tampering the moment the next block lands).
 			this.model.validateChain();
