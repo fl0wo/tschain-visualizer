@@ -530,17 +530,17 @@ export class SceneView {
 	}
 
 	/**
-	 * Per-type callout anchoring: blocks annotate toward the TOP-LEFT
-	 * (from their base — the chain's upper-left airspace is empty),
-	 * transactions toward the BOTTOM-LEFT from their CENTER (the anchor
-	 * dot sits inside the cube, so the depth-tested leader visibly
-	 * emerges from the cube's surface). Both fall back to other
-	 * diagonals when the screen edge demands it.
+	 * Per-type callout anchoring: blocks annotate toward the TOP-RIGHT
+	 * (from their base — above the chain there's open air), transactions
+	 * toward the BOTTOM-LEFT from their CENTER (the anchor dot sits
+	 * inside the cube, so the depth-tested leader visibly emerges from
+	 * the cube's surface). Both fall back to other diagonals when the
+	 * screen edge demands it.
 	 */
 	private static calloutFor(picked: { tx?: TxInfo }): { lift: number; prefer: CalloutDir } {
 		return picked.tx
 			? { lift: 0, prefer: 'bl' }
-			: { lift: -theme.layout.cubeSize / 2, prefer: 'tl' };
+			: { lift: -theme.layout.cubeSize / 2, prefer: 'tr' };
 	}
 
 	/** the callout's world-space anchor point (object center + lift) */
