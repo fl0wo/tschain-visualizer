@@ -3,7 +3,34 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>tschain — educational blockchain visualizer</title>
+		<title>tschain — watch blockchains work</title>
+		<meta
+			name="description"
+			content="A 3D blockchain visualizer for learning how chains actually work — proof-of-work simulated step by step, and Bitcoin mainnet streamed live."
+		/>
+		<meta name="author" content="Florian Sabani" />
+		<meta name="theme-color" content="#0a0a0a" />
+		<link rel="canonical" href="https://tschain.floriansabani.com/" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+		<!-- social cards -->
+		<meta property="og:type" content="website" />
+		<meta property="og:site_name" content="tschain-visualizer" />
+		<meta property="og:title" content="tschain — watch blockchains work" />
+		<meta
+			property="og:description"
+			content="Watch consensus happen in 3D: a narrated proof-of-work simulation, and real Bitcoin blocks arriving live."
+		/>
+		<meta property="og:url" content="https://tschain.floriansabani.com/" />
+		<meta property="og:image" content="https://tschain.floriansabani.com/og.png" />
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:title" content="tschain — watch blockchains work" />
+		<meta
+			name="twitter:description"
+			content="Watch consensus happen in 3D: a narrated proof-of-work simulation, and real Bitcoin blocks arriving live."
+		/>
+		<meta name="twitter:image" content="https://tschain.floriansabani.com/og.png" />
+
 		<!-- Geist Sans for UI text, Geist Mono for every hash/key/nonce. -->
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -11,10 +38,24 @@
 			href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap"
 			rel="stylesheet"
 		/>
+
+		<!-- paint the stage dark before the bundle loads: no white flash -->
+		<style>
+			html {
+				background: #0a0a0a;
+			}
+			body {
+				margin: 0;
+			}
+		</style>
 	</head>
 	<body>
-		<!-- Phase 2 mounts the three.js scene and HUD here. -->
 		<div id="app"></div>
+		<noscript>
+			<p style="color: #ededed; font-family: ui-sans-serif, system-ui; padding: 24px">
+				tschain-visualizer renders an interactive 3D scene and needs JavaScript enabled.
+			</p>
+		</noscript>
 		<script type="module" src="/src/main.ts"></script>
 	</body>
 </html>
