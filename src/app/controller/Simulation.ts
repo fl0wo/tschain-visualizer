@@ -23,6 +23,8 @@ export class Simulation {
 	/** Only one proof-of-work search at a time, like one local miner. */
 	private mining = false;
 	private stopped = false;
+	private timer: ReturnType<typeof setTimeout> | null = null;
+	private _timeScale = 1;
 
 	constructor(private readonly model: ChainModel) {}
 
@@ -35,18 +37,44 @@ export class Simulation {
 
 	stop(): void {
 		this.stopped = true;
+		if (this.timer !== null) clearTimeout(this.timer);
+	}
+
+	get timeScale(): number {
+		return this._timeScale;
+	}
+
+	/**
+	 * Speed multiplier for the whole simulation: 2 = events twice as
+	 * often, 0.5 = half as often. Only the *cadence* scales — animations
+	 * and mining keep their natural pace, so speeding up reads as "a
+	 * busier network", not a fast-forwarded video.
+	 */
+	set timeScale(value: number) {
+		this._timeScale = Math.min(16, Math.max(0.05, value));
+		// Re-arm the pending tick at the new pace. Without this, dialing
+		// up from a slow setting would only take effect after the old
+		// (long) delay finally expired.
+		if (this.timer !== null && !this.stopped) {
+			clearTimeout(this.timer);
+			this.scheduleTick(this.nextDelay());
+		}
 	}
 
 	// ── the heartbeat ──────────────────────────────────────────────────
 
+	/** Jittered cadence (~1.4–3.2s at ×1): regular enough to stay alive,
+	 *  irregular enough to feel organic. */
+	private nextDelay(): number {
+		return 1400 + Math.random() * 1800;
+	}
+
 	private scheduleTick(delay: number): void {
 		if (this.stopped) return;
-		setTimeout(() => {
+		this.timer = setTimeout(() => {
 			this.tick();
-			// Jittered cadence (~1.4–3.2s): regular enough to stay alive,
-			// irregular enough to feel organic.
-			this.scheduleTick(1400 + Math.random() * 1800);
-		}, delay);
+			this.scheduleTick(this.nextDelay());
+		}, delay / this._timeScale);
 	}
 
 	/**

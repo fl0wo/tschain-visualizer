@@ -9,6 +9,7 @@ import { Simulation } from './app/controller/Simulation';
 import { ChainModel } from './app/model/ChainModel';
 import { Hud } from './app/view/Hud';
 import { SceneView } from './app/view/SceneView';
+import { SpeedControl } from './app/view/SpeedControl';
 
 const app = document.querySelector<HTMLDivElement>('#app');
 if (!app) throw new Error('#app container missing in index.html');
@@ -18,4 +19,10 @@ const view = new SceneView(app);
 const hud = new Hud(app);
 
 new Controller(model, view, hud);
-new Simulation(model).start();
+
+const simulation = new Simulation(model);
+const speedControl = new SpeedControl(app);
+speedControl.onChange = (scale) => {
+	simulation.timeScale = scale;
+};
+simulation.start();

@@ -136,6 +136,36 @@ canvas {
 	color: #ff9090;
 }
 
+/* ── speed control (top-right) ─────────────────────────────────────── */
+
+.speed-control {
+	position: fixed;
+	top: 12px;
+	right: 12px;
+	width: 190px;
+	z-index: 5;
+}
+
+.speed-row {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.speed-row input[type='range'] {
+	flex: 1;
+	accent-color: #3d6bb3;
+	cursor: pointer;
+}
+
+.speed-value {
+	margin-top: 4px;
+	text-align: center;
+	font-family: ui-monospace, monospace;
+	font-size: 12px;
+	color: #7fa3d4;
+}
+
 /* ── tooltip ───────────────────────────────────────────────────────── */
 
 .tx-tooltip {
