@@ -1,0 +1,28 @@
+{
+	"mempool-blocks": [
+		{
+			"blockSize": 1701332,
+			"blockVSize": 997856.5,
+			"nTx": 4203,
+			"totalFees": 1322901,
+			"medianFee": 1.21,
+			"feeRange": [1, 1.05, 1.1, 1.21, 1.8, 3.4, 402.7]
+		},
+		{
+			"blockSize": 1688410,
+			"blockVSize": 997990.25,
+			"nTx": 3911,
+			"totalFees": 1019884,
+			"medianFee": 1.02,
+			"feeRange": [1, 1.0, 1.01, 1.02, 1.1, 1.4, 88.3]
+		},
+		{
+			"blockSize": 1244007,
+			"blockVSize": 704112.75,
+			"nTx": 2406,
+			"totalFees": 504229,
+			"medianFee": 0.72,
+			"feeRange": [0.55, 0.6, 0.66, 0.72, 0.9, 1.0, 12.6]
+		}
+	]
+}

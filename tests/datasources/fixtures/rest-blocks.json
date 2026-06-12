@@ -1,0 +1,80 @@
+[
+	{
+		"id": "0000000000000000000123de710a04cc64d70369217c3e2845acbb3e7ab39426",
+		"height": 953352,
+		"version": 671514624,
+		"timestamp": 1781259687,
+		"bits": 386008719,
+		"nonce": 871702128,
+		"difficulty": 138955357012247.3,
+		"merkle_root": "2b39ddd08436450b6c5f28285efdc66cbb1a4a11f2ea499ca233828340b352a1",
+		"tx_count": 5551,
+		"size": 1633749,
+		"weight": 3993873,
+		"previousblockhash": "00000000000000000001928470d401ca2bc5d8ed28118edb30447afd704a1c83",
+		"mediantime": 1781256740,
+		"stale": false,
+		"extras": {
+			"reward": 314154457,
+			"medianFee": 0.7925,
+			"feeRange": [0.69, 0.71, 0.72, 0.78, 1, 1.9, 400],
+			"totalFees": 1654457,
+			"avgFee": 298,
+			"avgFeeRate": 1,
+			"pool": { "id": 44, "name": "AntPool", "slug": "antpool", "minerNames": null },
+			"matchRate": 99.94
+		}
+	},
+	{
+		"id": "00000000000000000001928470d401ca2bc5d8ed28118edb30447afd704a1c83",
+		"height": 953351,
+		"version": 614268928,
+		"timestamp": 1781259458,
+		"bits": 386008719,
+		"nonce": 3002315219,
+		"difficulty": 138955357012247.3,
+		"merkle_root": "0befc397d9db888f81425f164d2c846dd98d48541103ba34e3d41b130d2a5b06",
+		"tx_count": 4292,
+		"size": 1618816,
+		"weight": 3993844,
+		"previousblockhash": "000000000000000000011e058c3bc77b393dd2f43f78d2574ebb686b69d9dd82",
+		"mediantime": 1781255041,
+		"stale": false,
+		"extras": {
+			"reward": 314552886,
+			"medianFee": 1.2428571428571427,
+			"feeRange": [1, 1.02, 1.04, 1.22, 2.05, 3.01, 476.19],
+			"totalFees": 2052886,
+			"avgFee": 478,
+			"avgFeeRate": 2,
+			"pool": { "id": 44, "name": "AntPool", "slug": "antpool", "minerNames": null },
+			"matchRate": 99.91
+		}
+	},
+	{
+		"id": "000000000000000000011e058c3bc77b393dd2f43f78d2574ebb686b69d9dd82",
+		"height": 953350,
+		"version": 537853952,
+		"timestamp": 1781258102,
+		"bits": 386008719,
+		"nonce": 1765892341,
+		"difficulty": 138955357012247.3,
+		"merkle_root": "5a1f0c5f9e1d4b8e2c3a7d6f8b9c0a1e2d3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b",
+		"tx_count": 3107,
+		"size": 1422301,
+		"weight": 3992210,
+		"previousblockhash": "0000000000000000000301bb4d340f72ad12a0f76aa033b2a09c80ed75c4e7f1",
+		"mediantime": 1781254620,
+		"stale": false,
+		"extras": {
+			"reward": 313367112,
+			"medianFee": 1.05,
+			"feeRange": [1, 1.01, 1.03, 1.05, 1.5, 2.4, 310.4],
+			"totalFees": 867112,
+			"avgFee": 279,
+			"avgFeeRate": 1,
+			"pool": { "id": 111, "name": "Foundry USA", "slug": "foundryusa", "minerNames": null },
+			"matchRate": 99.97
+		}
+	}
+]

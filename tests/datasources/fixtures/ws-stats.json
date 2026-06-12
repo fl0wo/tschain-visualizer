@@ -1,0 +1,20 @@
+{
+	"mempoolInfo": {
+		"loaded": true,
+		"size": 10532,
+		"bytes": 4391770,
+		"usage": 27293120,
+		"total_fee": 0.04719121,
+		"maxmempool": 300000000,
+		"mempoolminfee": 0.00001,
+		"minrelaytxfee": 0.00001
+	},
+	"fees": {
+		"fastestFee": 2,
+		"halfHourFee": 1,
+		"hourFee": 1,
+		"economyFee": 1,
+		"minimumFee": 1
+	},
+	"vBytesPerSecond": 1382
+}

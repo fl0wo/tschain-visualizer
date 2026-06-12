@@ -1,0 +1,28 @@
+{
+	"block": {
+		"id": "00000000000000000002aa31c0b8de54f0a2cbe9803b6ffe9f8ad22dd4e0a917",
+		"height": 953353,
+		"version": 538968064,
+		"timestamp": 1781260301,
+		"bits": 386008719,
+		"nonce": 2741998213,
+		"difficulty": 138955357012247.3,
+		"merkle_root": "9c7e2f1a3b5d8c0e4f6a7b9d1c3e5f7a9b1d3f5a7c9e1b3d5f7a9c1e3b5d7f9a",
+		"tx_count": 4810,
+		"size": 1592244,
+		"weight": 3993120,
+		"previousblockhash": "0000000000000000000123de710a04cc64d70369217c3e2845acbb3e7ab39426",
+		"mediantime": 1781257391,
+		"stale": false,
+		"extras": {
+			"reward": 313940122,
+			"medianFee": 1.1,
+			"feeRange": [1, 1.02, 1.08, 1.1, 1.6, 2.8, 388.2],
+			"totalFees": 1440122,
+			"avgFee": 299,
+			"avgFeeRate": 1,
+			"pool": { "id": 111, "name": "Foundry USA", "slug": "foundryusa", "minerNames": null },
+			"matchRate": 99.9
+		}
+	}
+}
