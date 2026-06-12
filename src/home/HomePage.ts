@@ -40,7 +40,7 @@ const LIVE: MenuRow[] = [
 	{
 		items: [
 			{ label: 'Bitcoin', sub: 'mainnet, live', badge: 'L1', route: '/live/bitcoin' },
-			{ label: 'Lightning', sub: 'payment channels', badge: 'L2', connector: true },
+			{ label: 'Lightning', sub: 'payment channels', badge: 'L2', connector: true, route: '/simulate/lightning' },
 		],
 	},
 	{

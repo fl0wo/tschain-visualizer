@@ -10,6 +10,7 @@
  * and a fresh boot is more reliable than a hand-written teardown.
  */
 import './app/style.css';
+import { mountLightningApp } from './app/lightning/lightningApp';
 import { mountLiveBitcoinApp } from './app/live/liveBitcoinApp';
 import { mountPosApp } from './app/posApp';
 import { mountPowApp } from './app/powApp';
@@ -38,6 +39,12 @@ function render(path: string): void {
 	if (path === '/simulate/pos') {
 		document.title = 'tschain — PoS simulation';
 		mountPosApp(app!);
+		return;
+	}
+
+	if (path === '/simulate/lightning') {
+		document.title = 'tschain — Lightning simulation';
+		mountLightningApp(app!);
 		return;
 	}
 

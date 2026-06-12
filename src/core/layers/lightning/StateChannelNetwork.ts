@@ -248,6 +248,12 @@ export class StateChannelNetwork implements Layer2System<ChannelEvents> {
 		return total;
 	}
 
+	/** the route a payment WOULD take (for the composer's preview) */
+	previewPath(fromName: string, toName: string, amount: number): string[] | null {
+		const path = this.findPath(fromName, toName, amount);
+		return path ? [...path.map((hop) => hop.fromName), toName] : null;
+	}
+
 	/** the exact message both parties sign for a state — public so tests
 	 *  (and curious users) can verify the signatures themselves */
 	stateMessage(channelId: string, state: { balanceA: number; balanceB: number; stateNumber: number }): string {

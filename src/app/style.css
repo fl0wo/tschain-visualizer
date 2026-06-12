@@ -590,6 +590,77 @@ canvas {
 	}
 }
 
+/* ── lightning page: channels + controls ───────────────────────────── */
+
+.channel-row {
+	padding: 5px 0;
+	border-bottom: 1px solid rgba(51, 51, 51, 0.4);
+}
+
+.channel-row:last-child {
+	border-bottom: none;
+}
+
+.channel-title {
+	display: flex;
+	justify-content: space-between;
+	font-weight: 500;
+	font-size: 12px;
+}
+
+.channel-status {
+	color: var(--pending);
+	font-size: 10px;
+}
+
+.channel-bar {
+	height: 5px;
+	margin: 4px 0 2px;
+	border-radius: 3px;
+	background: var(--active); /* side B color underneath */
+	overflow: hidden;
+}
+
+.channel-bar-a {
+	display: block;
+	height: 100%;
+	background: #f7c548; /* side A (lightning yellow) */
+	transition: width 400ms ease;
+}
+
+.channel-amounts {
+	display: flex;
+	justify-content: space-between;
+	font-size: 10px;
+}
+
+.ln-row {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin-bottom: 6px;
+}
+
+.ln-row select,
+.ln-row input[type='number'] {
+	padding: 4px 6px;
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	background: #0e1730;
+	color: var(--text);
+	font: inherit;
+	font-size: 12px;
+}
+
+.ln-row input[type='number'] {
+	width: 56px;
+}
+
+.ln-preview {
+	font-size: 10px;
+	min-height: 12px;
+}
+
 /* ── bottom ticker ─────────────────────────────────────────────────── */
 
 .ticker {
