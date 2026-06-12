@@ -11,8 +11,13 @@ import { boosted, cssColor, theme } from './theme';
  * The block is the core of the edge-lit aesthetic: a near-black body so
  * the geometry recedes, and a bright wireframe of its edges so the form
  * reads as a crisp isometric diamond. State lives entirely in the edge
- * color — white = settled, teal = genesis, blue (breathing) = latest,
- * red-tinted gray = downstream of a break.
+ * color — teal = settled/confirmed (the "valid" accent), white =
+ * genesis (the one block that was agreed, not mined), blue (breathing)
+ * = latest, red-tinted gray = downstream of a break.
+ *
+ * Settled blocks hold a STABLE teal: the confirmation ripple only
+ * brightens that same hue (see ConfirmationAnimation), it never swaps
+ * to a different color — color swaps read as glitches.
  *
  * Geometry and the state materials are module-level singletons shared by
  * every block; only the label canvas is per-instance.
@@ -34,8 +39,10 @@ const BODY_MATERIAL = new THREE.MeshStandardMaterial({
 });
 
 const WIDTH = theme.edgeWidth.block;
-const EDGE_NORMAL = makeEdgeMaterial(boosted(theme.colors.edge, theme.boost.edges), WIDTH);
-const EDGE_GENESIS = makeEdgeMaterial(boosted(theme.colors.teal, theme.boost.edges), WIDTH);
+/** settled mined blocks: stable teal — confirmed history, the "valid" accent */
+const EDGE_NORMAL = makeEdgeMaterial(boosted(theme.colors.teal, theme.boost.edges), WIDTH);
+/** genesis: neutral white — agreed upon, not mined, outside the teal economy */
+const EDGE_GENESIS = makeEdgeMaterial(boosted(theme.colors.edge, theme.boost.edges), WIDTH);
 const EDGE_DIM = makeEdgeMaterial(theme.colors.redDim, WIDTH);
 /**
  * Single shared "latest block" material: only one block is the tip at a

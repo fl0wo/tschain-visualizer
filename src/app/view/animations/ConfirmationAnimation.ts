@@ -13,9 +13,10 @@ import type { Tweens } from '../tween';
  * block, tracing exactly the work that now protects each one.
  */
 
-// In-gamut teal (see the boost caution in theme.ts): the ripple should
-// read as a green-teal pulse sweeping back through history — push it
-// past ~1.2 and the clamp turns it into a white flash.
+// The SAME teal as settled block edges, only brighter (×ripple boost):
+// the pulse must read as "the green briefly glows", never as a color
+// swap — hue changes read as glitches. In-gamut per the boost caution
+// in theme.ts: past ~1.2 the clamp turns teal into a white flash.
 const RIPPLE_MATERIAL = makeEdgeMaterial(
 	boosted(theme.colors.teal, theme.boost.ripple),
 	theme.edgeWidth.block,
@@ -24,11 +25,13 @@ const RIPPLE_MATERIAL = makeEdgeMaterial(
 export class ConfirmationAnimation {
 	readonly finished: Promise<void>;
 
-	/** `blocks` ordered genesis → tip; the ripple travels tip → genesis. */
+	/** `blocks` ordered genesis → tip; the ripple travels tip → block #1.
+	 *  Genesis is skipped: it has white edges (it was agreed, not mined),
+	 *  and flashing it teal would be exactly the hue swap we avoid. */
 	constructor(blocks: readonly BlockMesh[], tweens: Tweens) {
 		const waves: Promise<void>[] = [];
 		const tip = blocks.length - 1;
-		for (let i = tip; i >= 0; i--) {
+		for (let i = tip; i >= 1; i--) {
 			const block = blocks[i]!;
 			const delaySec = ((tip - i) * theme.timing.rippleStaggerMs) / 1000;
 			let fired = false;
