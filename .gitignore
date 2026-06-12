@@ -168,3 +168,6 @@ dist
 
 # IDE
 .idea/
+
+# Playwright MCP artifacts
+.playwright-mcp/
