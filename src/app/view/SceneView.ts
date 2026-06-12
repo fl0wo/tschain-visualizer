@@ -53,8 +53,10 @@ export class SceneView {
 
 	private mining: MiningAnimation | null = null;
 	private breatheTime = 0;
-	/** post-processing on/off — the "magic shader" switch */
-	private postProcessing = true;
+	/** post-processing on/off — the "magic shader" switch. Off by
+	 *  default (must match the Hud button's initial state): bloom taxes
+	 *  the GPU every frame, so the glow is opt-in. */
+	private postProcessing = false;
 
 	// camera auto-follow state
 	private interacting = false;

@@ -46,13 +46,14 @@ export class Hud {
 		toggle.setAttribute('aria-label', 'collapse panels');
 		toggle.setAttribute('aria-expanded', 'true');
 
-		// magic shader toggle: post-processing (bloom etc.) on/off — the
-		// escape hatch for laptops whose fans disagree with the bloom pass
+		// magic shader toggle: post-processing (bloom etc.) on/off.
+		// OFF by default — the bloom pass taxes the GPU every frame, so
+		// the glow is opt-in; SceneView's default must match (and does).
 		const magic = document.createElement('button');
-		magic.className = 'stack-toggle magic-toggle active';
+		magic.className = 'stack-toggle magic-toggle';
 		magic.textContent = '✨';
-		magic.title = 'magic shaders: on';
-		magic.setAttribute('aria-pressed', 'true');
+		magic.title = 'magic shaders: off';
+		magic.setAttribute('aria-pressed', 'false');
 		magic.setAttribute('aria-label', 'toggle magic shaders');
 
 		buttons.append(toggle, magic);
@@ -68,7 +69,7 @@ export class Hud {
 			toggle.setAttribute('aria-label', collapsed ? 'expand panels' : 'collapse panels');
 		});
 
-		let magicEnabled = true;
+		let magicEnabled = false;
 		magic.addEventListener('click', () => {
 			magicEnabled = !magicEnabled;
 			magic.classList.toggle('active', magicEnabled);
