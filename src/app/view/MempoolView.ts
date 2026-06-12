@@ -80,11 +80,17 @@ export class MempoolView {
 	}
 
 	/**
-	 * MiningAnimation's final beat: the mined cubes fly into the new
-	 * block with eased arcs, staggered so the eye can follow them.
+	 * MiningAnimation's final beat: the mined cubes fly to the freshly
+	 * mined block with eased arcs, staggered so the eye can follow them.
 	 * Cubes still mid-intro are cut short — history won't wait.
+	 *
+	 * Flights happen in WORLD space: the pool group itself is easing
+	 * toward the new chain tip during the drain, so a cube flying in
+	 * group-local coordinates would drift with it and land one block
+	 * too far. Reparenting to the scene pins the path to the ground.
 	 */
 	async drainInto(worldTarget: THREE.Vector3, minedHashes: Iterable<string>, tweens: Tweens): Promise<void> {
+		const scene = this.group.parent;
 		const flights: Promise<void>[] = [];
 		let order = 0;
 		for (const hash of minedHashes) {
@@ -93,22 +99,25 @@ export class MempoolView {
 			this.entries.delete(hash);
 			entry.cube.cancelIntro();
 
-			const from = entry.cube.group.position.clone();
-			const to = this.group.worldToLocal(worldTarget.clone());
+			const from = entry.cube.group.getWorldPosition(new THREE.Vector3());
+			this.group.remove(entry.cube.group);
+			scene?.add(entry.cube.group);
+			entry.cube.group.position.copy(from);
+
 			const delaySec = (order++ * theme.timing.txFlightStaggerMs) / 1000;
 			flights.push(
 				tweens
 					.run(
 						theme.timing.txFlight,
 						(t) => {
-							entry.cube.group.position.lerpVectors(from, to, t);
+							entry.cube.group.position.lerpVectors(from, worldTarget, t);
 							// the arc: a sine bump on top of the straight path
 							entry.cube.group.position.y += Math.sin(t * Math.PI) * 1.1;
 						},
 						{ delaySec },
 					)
 					.finished.then(() => {
-						this.group.remove(entry.cube.group);
+						scene?.remove(entry.cube.group);
 					}),
 			);
 		}
