@@ -166,7 +166,7 @@ export const theme = {
 	 *  flipping to the other diagonal when the screen edge demands it. */
 	callout: {
 		/** diagonal distance (px) between the anchor dot and the card dot */
-		liftPx: 104,
+		liftPx: 156,
 		/** leader incline, degrees away from vertical (0 = straight up/down) */
 		angleDeg: 20,
 		dotPx: 5,
