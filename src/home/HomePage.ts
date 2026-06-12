@@ -46,8 +46,8 @@ const LIVE: MenuRow[] = [
 	{
 		items: [
 			{ label: 'Ethereum', badge: 'L1' },
-			{ label: 'Arbitrum', badge: 'L2', connector: true },
-			{ label: 'Base', badge: 'L2' },
+			{ label: 'Base', sub: 'optimistic rollup', badge: 'L2', connector: true, route: '/simulate/base' },
+			{ label: 'Arbitrum', badge: 'L2' },
 			{ label: 'Optimism', badge: 'L2' },
 			{ label: 'zkSync', badge: 'L2' },
 			{ label: 'Linea', badge: 'L2' },

@@ -287,6 +287,17 @@ export class SceneView {
 		return this.blocks.length;
 	}
 
+	/** Mount an auxiliary display layer (e.g. a rollup lane) into the
+	 *  scene, sharing the camera, render loop and tween clock. */
+	attach(object: THREE.Object3D): void {
+		this.scene.add(object);
+	}
+
+	/** The shared tween engine, for attached layers' animations. */
+	get sharedTweens(): Tweens {
+		return this.tweens;
+	}
+
 	/**
 	 * Add a block without ceremony (genesis / backfill / initial state).
 	 * Scene position = ARRIVAL ORDER (display index), not block height —
