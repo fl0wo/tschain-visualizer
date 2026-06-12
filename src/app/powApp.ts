@@ -6,6 +6,7 @@
  */
 import { Controller } from './controller/Controller';
 import { Simulation } from './controller/Simulation';
+import { SimulatedSource } from './datasources/SimulatedSource';
 import { ChainModel } from './model/ChainModel';
 import { Hud } from './view/Hud';
 import { PlaybackControls } from './view/PlaybackControls';
@@ -26,6 +27,10 @@ export function mountPowApp(app: HTMLElement): void {
 	hud.onMagicToggle = (enabled) => view.setPostProcessing(enabled);
 
 	const simulation = new Simulation(model);
+	// the simulation behind the DataSource seam — same events, same flow;
+	// live pages plug a different source into the same vocabulary
+	const source = new SimulatedSource(model, simulation);
+
 	const playback = new PlaybackControls(hud.rightStack); // mounts above the wallets panel
 	playback.onSpeedChange = (scale) => {
 		simulation.timeScale = scale;
@@ -39,5 +44,5 @@ export function mountPowApp(app: HTMLElement): void {
 		simulation.resume();
 		hud.logEvent('Simulation resumed.');
 	};
-	simulation.start();
+	void source.start();
 }

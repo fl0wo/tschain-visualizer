@@ -3,71 +3,19 @@ import { Mempool } from '../../core/Mempool';
 import { Transaction } from '../../core/Transaction';
 import { Wallet } from '../../core/Wallet';
 import { TypedEventEmitter } from '../../core/events';
+import type {
+	BlockInfo,
+	ChainEvents,
+	TxInfo,
+	ValidationReport,
+	BlockIntegrity,
+} from '../../core/events/chainEvents';
 import type { Address, Hex } from '../../core/types';
 
-/**
- * Plain-data snapshots handed to the View. The View must never hold core
- * objects (it could mutate them, and it would couple rendering to domain
- * internals) — it gets these frozen DTOs instead.
- */
-export interface TxInfo {
-	readonly hash: Hex;
-	readonly from: Address | null;
-	readonly to: Address;
-	readonly fromName: string;
-	readonly toName: string;
-	readonly amount: number;
-	/** miner tip paid by the sender on top of `amount` */
-	readonly fee: number;
-	readonly nonce: number;
-	readonly coinbase: boolean;
-	readonly signatureValid: boolean;
-}
-
-export interface BlockInfo {
-	readonly index: number;
-	readonly hash: Hex;
-	readonly previousHash: Hex;
-	readonly nonce: number;
-	readonly timestamp: number;
-	readonly transactions: readonly TxInfo[];
-}
-
-/** Per-block integrity breakdown — lets the View color each link. */
-export interface BlockIntegrity {
-	readonly index: number;
-	/** stored hash still matches the block's current contents */
-	readonly hashValid: boolean;
-	/** previousHash still matches the actual parent hash */
-	readonly linkValid: boolean;
-	/** hash meets the proof-of-work difficulty */
-	readonly powValid: boolean;
-	/** every non-coinbase tx signature verifies */
-	readonly signaturesValid: boolean;
-}
-
-export interface ValidationReport {
-	readonly valid: boolean;
-	readonly blocks: readonly BlockIntegrity[];
-}
-
-/** Every announcement the Model can make. Name → payload type. */
-export interface ChainEvents {
-	'wallet:created': { name: string; address: Address };
-	'tx:added': TxInfo;
-	'tx:rejected': { reason: string; fromName: string; toName: string; amount: number };
-	'mining:started': {
-		index: number;
-		minerName: string;
-		txCount: number;
-		/** everyone racing for this block (winner listed first) */
-		competitors: readonly string[];
-	};
-	'mining:progress': { index: number; nonce: number; hashAttempt: Hex };
-	'block:mined': BlockInfo;
-	'chain:tampered': { blockIndex: number };
-	'chain:validated': ValidationReport;
-}
+// The event vocabulary lives in core/events/chainEvents.ts so live data
+// sources can speak it without importing app code. Re-exported here so
+// existing `from '../model/ChainModel'` imports keep working.
+export type { BlockInfo, ChainEvents, TxInfo, ValidationReport, BlockIntegrity };
 
 /**
  * # ChainModel — the M in MVC
