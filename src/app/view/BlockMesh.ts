@@ -136,16 +136,20 @@ export class BlockMesh {
 		registerLabel(label); // keep readable at any zoom
 		this.group.add(label);
 
-		// The block's transactions ride on top as settled mini cubes.
+		// The block's transactions rest ON THE FLOOR beside the cube's +z
+		// face — which reads as screen bottom-left at the iso angle — in
+		// pairs of two: a tidy grid-aligned receipt pad, not a floating
+		// crown above the block.
 		info.transactions.forEach((tx, i) => {
 			const cube = new TxCubeMesh(tx);
 			cube.setState('mined');
 			if (!tx.coinbase && tx.signatureValid) cube.addSeal();
-			const count = info.transactions.length;
+			const column = i % 2;
+			const row = Math.floor(i / 2);
 			cube.group.position.set(
-				(i - (count - 1) / 2) * (theme.layout.txCubeSize + 0.18),
-				SIZE / 2 + theme.layout.txCubeSize / 2 + 0.12,
-				0,
+				(column - 0.5) * theme.layout.txPadSpacing,
+				-(SIZE / 2) + theme.layout.txCubeSize / 2, // floor level
+				SIZE / 2 + theme.layout.txPadGap + row * theme.layout.txPadSpacing,
 			);
 			this.txCubes.push(cube);
 			this.group.add(cube.group);

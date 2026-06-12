@@ -289,8 +289,15 @@ export class SceneView {
 		const link = this.links[this.links.length - 1];
 		const drawn = link ? link.drawIn(this.tweens) : Promise.resolve();
 
-		// mined transactions fly home with staggered arcs
-		const target = blockPosition(info.index).add(new THREE.Vector3(0, theme.layout.cubeSize, 0));
+		// mined transactions fly home with staggered arcs, landing at the
+		// floor pad beside the block (where BlockMesh placed their twins)
+		const target = blockPosition(info.index).add(
+			new THREE.Vector3(
+				0,
+				-(theme.layout.cubeSize / 2) + theme.layout.txCubeSize / 2,
+				theme.layout.cubeSize / 2 + theme.layout.txPadGap + theme.layout.txPadSpacing / 2,
+			),
+		);
 		await Promise.all([
 			grown,
 			drawn,

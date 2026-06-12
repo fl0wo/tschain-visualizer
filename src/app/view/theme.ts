@@ -181,6 +181,10 @@ export const theme = {
 		txCubeSize: 0.42,
 		/** mempool holding zone, relative to the chain tip */
 		mempoolOffset: new THREE.Vector3(1.2, 3.6, -3.4),
+		/** mined-tx floor pad beside each block: gap from the cube face
+		 *  and the center-to-center spacing of the 2-wide pair grid */
+		txPadGap: 0.5,
+		txPadSpacing: 0.62,
 		/** where new tx cubes materialize before signing/verification */
 		stagingOffset: new THREE.Vector3(0, 1.6, 0),
 	},
