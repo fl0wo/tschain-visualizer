@@ -122,6 +122,8 @@ export const theme = {
 	callout: {
 		/** diagonal distance (px) between the anchor dot and the card dot */
 		liftPx: 76,
+		/** leader incline, degrees away from vertical (0 = straight up/down) */
+		angleDeg: 20,
 		dotPx: 5,
 	},
 
@@ -216,7 +218,13 @@ export function applyCssVars(): void {
 	root.setProperty('--hover-ms', `${theme.timing.hoverMs}ms`);
 	root.setProperty('--ticker-ms', `${theme.timing.tickerMs}ms`);
 	root.setProperty('--callout-lift', `${theme.callout.liftPx}px`);
-	// horizontal/vertical component of the 45° diagonal (lift / √2)
-	root.setProperty('--callout-run', `${(theme.callout.liftPx * Math.SQRT1_2).toFixed(1)}px`);
+	// decompose the inclined leader into x/y components (and the 5px
+	// dot-gap along the same direction) so the CSS stays angle-agnostic
+	const rad = (theme.callout.angleDeg * Math.PI) / 180;
+	root.setProperty('--callout-angle', `${theme.callout.angleDeg}deg`);
+	root.setProperty('--callout-run-x', `${(theme.callout.liftPx * Math.sin(rad)).toFixed(1)}px`);
+	root.setProperty('--callout-run-y', `${(theme.callout.liftPx * Math.cos(rad)).toFixed(1)}px`);
+	root.setProperty('--callout-gap-x', `${(5 * Math.sin(rad)).toFixed(2)}px`);
+	root.setProperty('--callout-gap-y', `${(5 * Math.cos(rad)).toFixed(2)}px`);
 	root.setProperty('--callout-dot', `${theme.callout.dotPx}px`);
 }

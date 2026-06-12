@@ -427,13 +427,16 @@ export class SceneView {
 		y: number,
 		prefer: 'tr' | 'bl',
 	): void {
-		const run = theme.callout.liftPx * Math.SQRT1_2; // 45° components
+		// x/y components of the inclined leader (angleDeg away from vertical)
+		const rad = (theme.callout.angleDeg * Math.PI) / 180;
+		const runX = theme.callout.liftPx * Math.sin(rad);
+		const runY = theme.callout.liftPx * Math.cos(rad);
 		const w = callout.card.offsetWidth;
 		const h = callout.card.offsetHeight;
 		const m = 8; // screen margin
 
-		const fitsTr = y - run - 6 - h >= m && x + run + 6 + w <= window.innerWidth - m;
-		const fitsBl = x - run - 6 - w >= m && y + run + 6 + h <= window.innerHeight - m;
+		const fitsTr = y - runY - 6 - h >= m && x + runX + 6 + w <= window.innerWidth - m;
+		const fitsBl = x - runX - 6 - w >= m && y + runY + 6 + h <= window.innerHeight - m;
 		const dir =
 			prefer === 'tr' ? (fitsTr ? 'tr' : fitsBl ? 'bl' : 'tr') : fitsBl ? 'bl' : fitsTr ? 'tr' : 'bl';
 
@@ -445,10 +448,10 @@ export class SceneView {
 		// horizontal clamp: slide only the card, never the leader
 		let shift = 0;
 		if (dir === 'tr') {
-			const cardLeft = x + run + 6;
+			const cardLeft = x + runX + 6;
 			shift = Math.min(0, window.innerWidth - m - (cardLeft + w));
 		} else {
-			const cardLeft = x - run - 6 - w;
+			const cardLeft = x - runX - 6 - w;
 			shift = Math.max(0, m - cardLeft);
 		}
 		callout.card.style.marginLeft = `${shift}px`;

@@ -278,35 +278,38 @@ canvas {
 	animation: callout-in var(--hover-ms) ease;
 }
 
-/* up-right: rotate(225deg) swings the down-pointing bar to up-right */
+/* up-right: 180deg + angle swings the down-pointing bar to up-right,
+   leaning --callout-angle away from vertical */
 .callout--tr .callout-dot-card {
-	left: var(--callout-run);
-	top: calc(-1 * var(--callout-run));
+	left: var(--callout-run-x);
+	top: calc(-1 * var(--callout-run-y));
 }
 
 .callout--tr .callout-line {
-	transform: translate(3.5px, -3.5px) rotate(225deg);
+	transform: translate(var(--callout-gap-x), calc(-1 * var(--callout-gap-y)))
+		rotate(calc(180deg + var(--callout-angle)));
 }
 
 .callout--tr .callout-card {
-	left: calc(var(--callout-run) + 6px);
-	top: calc(-1 * var(--callout-run) - 6px);
+	left: calc(var(--callout-run-x) + 6px);
+	top: calc(-1 * var(--callout-run-y) - 6px);
 	transform: translate(0, -100%);
 }
 
-/* down-left: rotate(45deg) swings it to down-left */
+/* down-left: the same lean, mirrored */
 .callout--bl .callout-dot-card {
-	left: calc(-1 * var(--callout-run));
-	top: var(--callout-run);
+	left: calc(-1 * var(--callout-run-x));
+	top: var(--callout-run-y);
 }
 
 .callout--bl .callout-line {
-	transform: translate(-3.5px, 3.5px) rotate(45deg);
+	transform: translate(calc(-1 * var(--callout-gap-x)), var(--callout-gap-y))
+		rotate(var(--callout-angle));
 }
 
 .callout--bl .callout-card {
-	left: calc(-1 * var(--callout-run) - 6px);
-	top: calc(var(--callout-run) + 6px);
+	left: calc(-1 * var(--callout-run-x) - 6px);
+	top: calc(var(--callout-run-y) + 6px);
 	transform: translate(-100%, 0);
 }
 
