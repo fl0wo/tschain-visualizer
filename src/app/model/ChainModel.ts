@@ -76,13 +76,34 @@ export interface ChainEvents {
  * and emits 'tx:rejected' with the human-readable reason, because in an
  * educational tool the rejection IS the lesson.
  */
+/**
+ * How mining spends its time. The default is honest flat-out hashing;
+ * a demo can stretch a low-difficulty search over wall-clock time
+ * (yieldMs sleeps between attempts) and enforce a floor (minMs) so a
+ * lucky first-try nonce still reads as "work" on screen — all without
+ * keeping the CPU busy.
+ */
+export interface MiningPace {
+	/** attempts between yields (lower = smoother progress events) */
+	yieldEvery: number;
+	/** ms slept at each yield — the demo's idle time */
+	yieldMs: number;
+	/** minimum wall-clock ms before a mined block is announced */
+	minMs: number;
+}
+
+const HONEST_PACE: MiningPace = { yieldEvery: 300, yieldMs: 0, minMs: 0 };
+
 export class ChainModel {
 	readonly events = new TypedEventEmitter<ChainEvents>();
 	private readonly chain: Blockchain;
 	private readonly mempool: Mempool;
 	private readonly wallets = new Map<string, Wallet>();
 
-	constructor(difficulty = 2) {
+	constructor(
+		difficulty = 2,
+		private readonly pace: MiningPace = HONEST_PACE,
+	) {
 		this.chain = new Blockchain(difficulty);
 		this.mempool = new Mempool(this.chain);
 	}
@@ -163,10 +184,11 @@ export class ChainModel {
 
 	/**
 	 * Mines the pending pool into a block, narrating progress so the View
-	 * can spin the live nonce counter. `yieldEvery` is small: smoother
-	 * animation and a responsive UI matter more here than raw hash rate.
+	 * can spin the live nonce counter. Pacing (see MiningPace) governs
+	 * how the search spends wall-clock time; block:mined is held back
+	 * until both the proof-of-work AND the minimum duration are done.
 	 */
-	async mine(minerName: string, yieldEvery = 300): Promise<BlockInfo> {
+	async mine(minerName: string): Promise<BlockInfo> {
 		const miner = this.requireWallet(minerName);
 		const nextIndex = this.chain.latestBlock.index + 1;
 		this.events.emit('mining:started', {
@@ -175,11 +197,15 @@ export class ChainModel {
 			txCount: this.mempool.pending.length + 1, // +1 coinbase
 		});
 
-		const block = await this.mempool.minePendingTransactions(miner.address, {
-			yieldEvery,
-			onProgress: (nonce, hashAttempt) =>
-				this.events.emit('mining:progress', { index: nextIndex, nonce, hashAttempt }),
-		});
+		const [block] = await Promise.all([
+			this.mempool.minePendingTransactions(miner.address, {
+				yieldEvery: this.pace.yieldEvery,
+				yieldMs: this.pace.yieldMs,
+				onProgress: (nonce, hashAttempt) =>
+					this.events.emit('mining:progress', { index: nextIndex, nonce, hashAttempt }),
+			}),
+			new Promise((resolve) => setTimeout(resolve, this.pace.minMs)),
+		]);
 
 		const info = this.toBlockInfo(block.index);
 		this.events.emit('block:mined', info);

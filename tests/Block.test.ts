@@ -70,6 +70,32 @@ describe('Block', () => {
 		expect(block.calculateHash()).not.toBe(block.hash);
 	});
 
+	it('supports paced mining: few hashes stretched over wall-clock time', async () => {
+		// Demo pacing: sleeping `yieldMs` between attempts means a low
+		// difficulty still LOOKS like work without burning CPU — the
+		// search is real, just idle most of the time.
+		// Deterministic setup: walk the timestamp until the FIRST attempt
+		// does NOT meet difficulty, so the loop must take ≥ one paced yield.
+		let timestamp = 1_700_000_000_500;
+		let block = makeBlock();
+		while (block.calculateHash().startsWith('0')) {
+			block = new Block({
+				index: 1,
+				timestamp: ++timestamp,
+				transactions: [makeTx()],
+				previousHash: '00'.repeat(32),
+			});
+		}
+		const start = performance.now();
+		await block.mine(1, { yieldEvery: 1, yieldMs: 20 });
+		const elapsed = performance.now() - start;
+		expect(block.hash.startsWith('0')).toBe(true);
+		expect(block.hash).toBe(block.calculateHash());
+		// every attempt slept ~20ms — demand ≥15ms per attempt, which a
+		// plain setTimeout(0) yield (~1ms) cannot reach
+		expect(elapsed).toBeGreaterThanOrEqual(block.nonce * 15);
+	});
+
 	it('reports mining progress so a UI can animate the search', async () => {
 		const block = makeBlock();
 		const seen: number[] = [];

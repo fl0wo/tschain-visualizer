@@ -24,6 +24,16 @@ describe('ChainModel', () => {
 		expect(model.walletNames).toEqual(['Alice']);
 	});
 
+	it('respects a minimum mining duration (demo pacing)', async () => {
+		// The visualizer asks for a floor on mining time so a lucky
+		// first-try nonce doesn't land a block with zero animation.
+		const model = new ChainModel(1, { yieldEvery: 1, yieldMs: 1, minMs: 120 });
+		model.createWallet('Alice');
+		const start = performance.now();
+		await model.mine('Alice');
+		expect(performance.now() - start).toBeGreaterThanOrEqual(110); // timer slop margin
+	});
+
 	it('mines a block and announces it with progress along the way', async () => {
 		const model = new ChainModel(1);
 		const alice = model.createWallet('Alice');

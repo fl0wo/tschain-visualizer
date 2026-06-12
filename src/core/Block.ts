@@ -12,6 +12,14 @@ export interface MineOptions {
 	 * higher = faster mining.
 	 */
 	yieldEvery?: number;
+	/**
+	 * How long (ms) to SLEEP at each yield. Default 0 = honest flat-out
+	 * mining. A demo can set a low difficulty plus a non-zero sleep:
+	 * the search is still real proof-of-work, but a handful of hashes
+	 * get stretched over seconds of wall-clock time — "mining" that the
+	 * CPU spends ~99% idle instead of draining the battery.
+	 */
+	yieldMs?: number;
 	/** Called with the current nonce + hash attempt — lets a UI show the live search. */
 	onProgress?: (nonce: number, hashAttempt: Hex) => void;
 }
@@ -103,8 +111,9 @@ export class Block {
 				sinceYield = 0;
 				options.onProgress?.(this.nonce, attempt);
 				// A macrotask (not a microtask!) — this is what actually lets
-				// the browser paint a frame between chunks of hashing.
-				await new Promise((resolve) => setTimeout(resolve, 0));
+				// the browser paint a frame between chunks of hashing. With
+				// yieldMs set, it doubles as the demo's idle time.
+				await new Promise((resolve) => setTimeout(resolve, options.yieldMs ?? 0));
 			}
 		}
 

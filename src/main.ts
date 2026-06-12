@@ -18,7 +18,11 @@ if (!app) throw new Error('#app container missing in index.html');
 // Mirror the theme palette into CSS custom properties before any UI builds.
 applyCssVars();
 
-const model = new ChainModel(2); // difficulty 2: snappy ambient mining
+// Demo mining: difficulty 1 (~16 hash attempts per block instead of
+// ~256) stretched over wall-clock time by sleeping between attempts,
+// with a floor so lucky nonces still read as work. Real proof-of-work,
+// negligible battery — the laptop-fan-friendly configuration.
+const model = new ChainModel(1, { yieldEvery: 1, yieldMs: 60, minMs: 900 });
 const view = new SceneView(app);
 const hud = new Hud(app);
 
