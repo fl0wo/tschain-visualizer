@@ -1,6 +1,6 @@
 import { Block } from './Block';
 import { Wallet } from './Wallet';
-import type { Address } from './types';
+import type { Address, Hex } from './types';
 
 /**
  * # Blockchain
@@ -157,4 +157,25 @@ export class Blockchain {
 		return count;
 	}
 
+	/**
+	 * How many blocks deep a transaction is buried: 1 if it's in the tip
+	 * block, +1 for every block mined on top, 0 if it isn't on-chain.
+	 *
+	 * Why depth = security: a transaction in the tip block could still be
+	 * undone by an attacker who mines a competing block at the same
+	 * height. But to undo a transaction N blocks deep, the attacker must
+	 * re-mine that block AND all N-1 blocks above it — and do it faster
+	 * than the honest network keeps extending the chain. Each
+	 * confirmation multiplies the cost, which is why exchanges wait for
+	 * ~6 confirmations (in Bitcoin) before crediting a deposit.
+	 */
+	getConfirmations(txHash: Hex): number {
+		for (let i = 0; i < this.blocks.length; i++) {
+			const block = this.blocks[i]!;
+			if (block.transactions.some((tx) => tx.hash() === txHash)) {
+				return this.blocks.length - i;
+			}
+		}
+		return 0;
+	}
 }

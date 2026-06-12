@@ -129,6 +129,28 @@ describe('Blockchain', () => {
 		expect(chain.isChainValid()).toBe(false);
 	});
 
+	it('counts confirmations as depth below the chain tip', async () => {
+		const { chain, tx } = await chainWithOneBlock();
+		// The tx's block IS the tip → 1 confirmation.
+		expect(chain.getConfirmations(tx.hash())).toBe(1);
+
+		// Bury it under one more block → 2 confirmations. Each block on
+		// top is one more proof-of-work an attacker would have to redo to
+		// rewrite this payment out of history.
+		const next = new Block({
+			index: 2,
+			timestamp: 1_700_000_006_000,
+			transactions: [],
+			previousHash: chain.latestBlock.hash,
+		});
+		await next.mine(DIFFICULTY);
+		chain.addBlock(next);
+		expect(chain.getConfirmations(tx.hash())).toBe(2);
+
+		// Unknown hash → 0 confirmations (not on-chain at all).
+		expect(chain.getConfirmations('ff'.repeat(32))).toBe(0);
+	});
+
 	it('derives balances and nonces by replaying the chain', async () => {
 		const { chain, alice, bob } = await chainWithOneBlock();
 		// Alice sent 30 to Bob (she's allowed to go negative here — balance
