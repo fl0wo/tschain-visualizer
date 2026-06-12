@@ -22,6 +22,9 @@ export class TextSprite {
 		this.sprite = new THREE.Sprite(
 			new THREE.SpriteMaterial({ map: this.texture, transparent: true, depthTest: false }),
 		);
+		// depthTest:false alone isn't enough — transparent geometry drawn
+		// later would still paint over the text; force text to draw last
+		this.sprite.renderOrder = 11;
 		this.sprite.scale.set(worldWidth, worldWidth / 4, 1);
 		registerLabel(this.sprite); // keep readable at any zoom
 	}

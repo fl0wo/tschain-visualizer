@@ -126,8 +126,11 @@ export class BlockMesh {
 		drawLabel(this.labelCtx, info.index === 0 ? 'genesis' : `#${info.index}`, shortHash(info.hash));
 		this.labelTexture = new THREE.CanvasTexture(canvas);
 		const label = new THREE.Sprite(
-			new THREE.SpriteMaterial({ map: this.labelTexture, transparent: true }),
+			// depthTest off: a label is an annotation, not scene geometry —
+			// it must never disappear behind a neighboring cube
+			new THREE.SpriteMaterial({ map: this.labelTexture, transparent: true, depthTest: false }),
 		);
+		label.renderOrder = 10; // draw after everything it annotates
 		label.scale.set(2.2, 0.82, 1);
 		label.position.y = -(SIZE / 2 + 0.65);
 		registerLabel(label); // keep readable at any zoom
