@@ -24,7 +24,8 @@ const TX_EDGES = new LineSegmentsGeometry().fromEdgesGeometry(new THREE.EdgesGeo
 /** The seal is a flat SQUARE frame (outer square minus inner square) —
  *  same visual language as the cube's square silhouette, no circles. */
 const SEAL_GEOMETRY = (() => {
-	const outer = theme.layout.txCubeSize * 0.46;
+	// flush with the cube's footprint (0.5 × size = the cube half-width)
+	const outer = theme.layout.txCubeSize * 0.5;
 	const inner = outer - 0.035; // frame thickness
 	const shape = new THREE.Shape();
 	shape.moveTo(-outer, -outer);
