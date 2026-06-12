@@ -123,7 +123,13 @@ export class SceneView {
 		sun.position.set(6, 14, 8);
 		this.scene.add(sun);
 
-		const grid = new THREE.GridHelper(240, 120, theme.colors.grid, theme.colors.grid);
+		// Grid cell = half the block spacing, so every block center lands
+		// on the same spot of its cell; the half-cell offset then centers
+		// each cube INSIDE a cell instead of straddling a line.
+		const cell = theme.layout.blockSpacing / 2;
+		const gridDivisions = 120;
+		const grid = new THREE.GridHelper(gridDivisions * cell, gridDivisions, theme.colors.grid, theme.colors.grid);
+		grid.position.set(cell / 2, 0, cell / 2);
 		this.scene.add(grid);
 		this.scene.add(this.mempool.group);
 		this.scene.add(this.pulse.mesh);
