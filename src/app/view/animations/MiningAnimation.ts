@@ -34,15 +34,19 @@ export class MiningAnimation {
 	private flickerTime = 0;
 	private done = false;
 
+	private readonly bodyMaterial: THREE.MeshBasicMaterial;
+
 	constructor(blockIndex: number, scene: THREE.Scene) {
 		this.scene = scene;
 		this.position = blockPosition(blockIndex);
 		this.group.position.copy(this.position);
 
-		const body = new THREE.Mesh(
-			GHOST_GEOMETRY,
-			new THREE.MeshBasicMaterial({ color: theme.colors.blockBody, transparent: true, opacity: 0.3 }),
-		);
+		this.bodyMaterial = new THREE.MeshBasicMaterial({
+			color: theme.colors.blockBody,
+			transparent: true,
+			opacity: 0.3,
+		});
+		const body = new THREE.Mesh(GHOST_GEOMETRY, this.bodyMaterial);
 		this.edgeMaterial = makeEdgeMaterial(
 			boosted(theme.colors.active, theme.boost.latest),
 			theme.edgeWidth.block,
@@ -76,8 +80,10 @@ export class MiningAnimation {
 	}
 
 	/**
-	 * Found it. Lock the readout with the leading zeros in teal, hold a
-	 * beat so the user can see WHY this hash wins, fire the shockwave.
+	 * Found it. Lock the readout with the leading zeros highlighted and
+	 * hold a beat so the user can see WHY this hash wins. The shockwave
+	 * and the ghost's dissolve are separate (playShockwave / fadeOut):
+	 * they belong to the moment the REAL block lands, not to the readout.
 	 */
 	async succeed(nonce: number, hash: string, difficulty: number, tweens: Tweens): Promise<void> {
 		this.done = true;
@@ -86,8 +92,14 @@ export class MiningAnimation {
 			highlightPrefix: 2 + difficulty, // '0x' + the leading zeros
 		});
 		await tweens.wait(theme.timing.mineLockHold);
+	}
 
-		// One crisp shockwave ring expanding across the floor.
+	/**
+	 * One crisp ring expanding across the floor — fired WHILE the solid
+	 * block lands on it, so depth testing keeps the ring underneath the
+	 * cube instead of shining through the translucent ghost.
+	 */
+	async playShockwave(tweens: Tweens): Promise<void> {
 		const ring = new THREE.Mesh(
 			RING_GEOMETRY,
 			new THREE.MeshBasicMaterial({
@@ -110,6 +122,21 @@ export class MiningAnimation {
 		).finished;
 		this.scene.remove(ring);
 		(ring.material as THREE.Material).dispose();
+	}
+
+	/**
+	 * The ghost dissolves as the real block grows inside it: edges and
+	 * body fade while the shell expands slightly — the outward drift also
+	 * keeps its faces from z-fighting with the coincident real cube.
+	 */
+	async fadeOut(tweens: Tweens): Promise<void> {
+		this.done = true; // stop the flicker fighting the fade
+		await tweens.run(theme.timing.ghostFade, (t) => {
+			this.edgeMaterial.opacity = 1 - t;
+			this.bodyMaterial.opacity = 0.3 * (1 - t);
+			this.readout.opacity = 1 - t;
+			this.group.scale.setScalar(1 + 0.08 * t);
+		}).finished;
 	}
 
 	dispose(): void {

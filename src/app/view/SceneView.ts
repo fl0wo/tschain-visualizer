@@ -250,20 +250,36 @@ export class SceneView {
 		this.mining?.updateReadout(nonce, hashAttempt);
 	}
 
-	/** block:mined — lock readout, shockwave, real block, link, drain, ripple. */
+	/** block:mined — lock readout, then the real block grows out of the
+	 *  floor under the dissolving ghost while the shockwave rolls out
+	 *  beneath it; link draws, mempool drains, confirmations ripple. */
 	async finishMining(info: BlockInfo, difficulty: number): Promise<void> {
+		let ghost: MiningAnimation | null = null;
 		if (this.mining) {
 			await this.mining.succeed(info.nonce, info.hash, difficulty, this.tweens);
-			this.mining.dispose();
+			ghost = this.mining;
 			this.mining = null;
 		}
 
 		this.addBlock(info);
 		const mesh = this.blocks[this.blocks.length - 1]!;
-		// pop-in: solidifying out of the ghost
-		void this.tweens.run(0.35, (t) => mesh.group.scale.setScalar(0.6 + 0.4 * t), {
-			easing: theme.easing.out,
-		});
+		// Materialize: scale to ~0 SYNCHRONOUSLY (before this frame
+		// renders — a tween's first update only lands next frame, which
+		// used to flash the block at full size for one frame), then grow.
+		mesh.group.scale.setScalar(0.0001);
+		const grown = this.tweens.run(
+			theme.timing.blockGrow,
+			(t) => mesh.group.scale.setScalar(t),
+			{ easing: theme.easing.out },
+		).finished;
+
+		// touchdown effects: the ghost shell dissolves around the growing
+		// block and the shockwave rolls out underneath it
+		if (ghost) {
+			const dying = ghost;
+			void dying.fadeOut(this.tweens).then(() => dying.dispose());
+			void dying.playShockwave(this.tweens);
+		}
 
 		// the previousHash pointer draws itself in from the parent
 		const link = this.links[this.links.length - 1];
@@ -272,6 +288,7 @@ export class SceneView {
 		// mined transactions fly home with staggered arcs
 		const target = blockPosition(info.index).add(new THREE.Vector3(0, theme.layout.cubeSize, 0));
 		await Promise.all([
+			grown,
 			drawn,
 			this.mempool.drainInto(target, info.transactions.map((tx) => tx.hash), this.tweens),
 		]);

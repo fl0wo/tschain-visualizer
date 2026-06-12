@@ -200,6 +200,10 @@ export const theme = {
 		// mining
 		readoutHz: 10,
 		mineLockHold: 0.9,
+		/** the real block growing out of the floor */
+		blockGrow: 0.45,
+		/** the ghost shell dissolving around it */
+		ghostFade: 0.3,
 		shockwave: 0.8,
 		txFlight: 0.65,
 		txFlightStaggerMs: 60,
