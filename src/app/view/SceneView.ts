@@ -242,6 +242,30 @@ export class SceneView {
 			if ((e.target as HTMLElement).dataset.close !== undefined) this.closePinned();
 		});
 
+		// Horizontal trackpad scroll travels the chain: right → ahead
+		// (newer blocks), left → back through history. Vertical scroll
+		// stays with OrbitControls (zoom). passive:false so we can stop
+		// macOS's two-finger back/forward swipe navigation.
+		this.renderer.domElement.addEventListener(
+			'wheel',
+			(e) => {
+				if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+				e.preventDefault();
+				const worldPerPx = theme.camera.viewHeight / this.camera.zoom / window.innerHeight;
+				const dx = e.deltaX * worldPerPx * 1.2;
+				// keep travel inside the chain's neighborhood
+				const min = -4;
+				const max = blockPosition(this.blocks.length + 4).x;
+				const clamped = Math.min(max, Math.max(min, this.controls.target.x + dx)) - this.controls.target.x;
+				this.controls.target.x += clamped;
+				this.camera.position.x += clamped;
+				// the user took the wheel — pause auto-follow like any drag
+				this.followCancel?.();
+				this.lastInteractionEnd = performance.now();
+			},
+			{ passive: false },
+		);
+
 		this.renderer.domElement.addEventListener('pointermove', (e) => {
 			this.pointer.set(
 				(e.clientX / window.innerWidth) * 2 - 1,
