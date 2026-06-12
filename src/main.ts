@@ -8,8 +8,8 @@ import { Controller } from './app/controller/Controller';
 import { Simulation } from './app/controller/Simulation';
 import { ChainModel } from './app/model/ChainModel';
 import { Hud } from './app/view/Hud';
+import { PlaybackControls } from './app/view/PlaybackControls';
 import { SceneView } from './app/view/SceneView';
-import { SpeedControl } from './app/view/SpeedControl';
 import { applyCssVars } from './app/view/theme';
 
 const app = document.querySelector<HTMLDivElement>('#app');
@@ -32,8 +32,8 @@ new Controller(model, view, hud);
 hud.onMagicToggle = (enabled) => view.setPostProcessing(enabled);
 
 const simulation = new Simulation(model);
-const speedControl = new SpeedControl(hud.rightStack); // mounts above the wallets panel
-speedControl.onChange = (scale) => {
+const playback = new PlaybackControls(hud.rightStack); // mounts above the wallets panel
+playback.onSpeedChange = (scale) => {
 	simulation.timeScale = scale;
 };
 simulation.start();

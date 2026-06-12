@@ -221,26 +221,45 @@ canvas {
 	font-size: 12px;
 }
 
-/* ── speed control ─────────────────────────────────────────────────── */
+/* ── playback controls (debugger-style transport + speed cycle) ────── */
 
-.speed-row {
+.playback-row {
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: 6px;
 }
 
-.speed-row input[type='range'] {
-	flex: 1;
-	accent-color: var(--active);
-	cursor: pointer;
-}
-
-.speed-value {
-	margin-top: 4px;
-	text-align: center;
-	font-family: 'Geist Mono', ui-monospace, monospace;
-	font-size: 11px;
+.playback-btn {
+	height: 26px;
+	min-width: 26px;
+	padding: 0 6px;
+	border-radius: 6px;
+	background: #0e1730;
+	border: 1px solid var(--border);
 	color: var(--text-secondary);
+	font: inherit;
+	font-size: 11px;
+	line-height: 1;
+	cursor: pointer;
+	transition: border-color var(--hover-ms) ease, color var(--hover-ms) ease;
+}
+
+.playback-btn:hover {
+	border-color: var(--text-secondary);
+	color: var(--text);
+}
+
+.playback-divider {
+	width: 1px;
+	height: 18px;
+	background: var(--border);
+	margin: 0 2px;
+}
+
+.playback-speed {
+	min-width: 48px;
+	color: var(--text);
+	border-color: var(--active);
 }
 
 /* ── left stack: narrator + mining race ────────────────────────────── */
