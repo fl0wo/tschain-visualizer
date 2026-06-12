@@ -64,9 +64,9 @@ describe('Layer-2 headless boot', () => {
 		rollup.deposit(user, 40);
 		await parent.produceSlot();
 		rollup.submitL2Tx(user, sequencer.address, 5);
-		rollup.postBatch();
 		const tx = rollup.lastTxHash()!;
-		expect(rollup.finalityOf(tx)).toBe('soft');
+		expect(rollup.finalityOf(tx)).toBe('soft'); // sequencer-ordered only
+		rollup.postBatch();
 		await parent.produceSlot();
 		expect(rollup.finalityOf(tx)).toBe('posted');
 		await parent.produceSlot();
