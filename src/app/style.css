@@ -482,6 +482,18 @@ canvas {
 	transform: translate(0, -100%);
 }
 
+/* up-left: blocks' preferred diagonal — the chain's upper-left is empty */
+.callout--tl .callout-dot-card {
+	left: calc(-1 * var(--callout-run-x));
+	top: calc(-1 * var(--callout-run-y));
+}
+
+.callout--tl .callout-card {
+	left: calc(-1 * var(--callout-run-x) - 6px);
+	top: calc(-1 * var(--callout-run-y) - 6px);
+	transform: translate(-100%, -100%);
+}
+
 /* down-left: the same lean, mirrored */
 .callout--bl .callout-dot-card {
 	left: calc(-1 * var(--callout-run-x));

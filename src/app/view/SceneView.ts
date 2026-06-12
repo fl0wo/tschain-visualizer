@@ -32,6 +32,9 @@ import { Tweens } from './tween';
  */
 const LEADER_DOT_GEOMETRY = new THREE.SphereGeometry(0.5, 12, 8);
 
+/** which diagonal a callout leader runs along */
+type CalloutDir = 'tr' | 'bl' | 'tl';
+
 class LeaderLine3D {
 	private readonly line: THREE.Line;
 	private readonly dot: THREE.Mesh;
@@ -48,13 +51,13 @@ class LeaderLine3D {
 		scene.add(this.line, this.dot);
 	}
 
-	update(anchor: THREE.Vector3, dir: 'tr' | 'bl', camera: THREE.OrthographicCamera): void {
+	update(anchor: THREE.Vector3, dir: CalloutDir, camera: THREE.OrthographicCamera): void {
 		// px → world: the ortho frustum spans viewHeight/zoom world units
 		// over the viewport height
 		const worldPerPx = theme.camera.viewHeight / camera.zoom / window.innerHeight;
 		const rad = (theme.callout.angleDeg * Math.PI) / 180;
 		const dxPx = theme.callout.liftPx * Math.sin(rad) * (dir === 'tr' ? 1 : -1);
-		const dyPx = theme.callout.liftPx * Math.cos(rad) * (dir === 'tr' ? 1 : -1); // screen-up
+		const dyPx = theme.callout.liftPx * Math.cos(rad) * (dir === 'bl' ? -1 : 1); // screen-up
 		const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
 		const up = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1);
 		const end = anchor
@@ -133,7 +136,7 @@ export class SceneView {
 	private hoverKey: string | null = null;
 	private pinnedTarget: THREE.Object3D | null = null;
 	private pinnedLift = 0;
-	private pinnedPrefer: 'tr' | 'bl' = 'bl';
+	private pinnedPrefer: CalloutDir = 'bl';
 	private readonly projVec = new THREE.Vector3();
 
 	constructor(container: HTMLElement) {
@@ -527,16 +530,17 @@ export class SceneView {
 	}
 
 	/**
-	 * Per-type callout anchoring: both annotate toward the bottom-left —
-	 * blocks from their BASE, transactions from their CENTER (the anchor
+	 * Per-type callout anchoring: blocks annotate toward the TOP-LEFT
+	 * (from their base — the chain's upper-left airspace is empty),
+	 * transactions toward the BOTTOM-LEFT from their CENTER (the anchor
 	 * dot sits inside the cube, so the depth-tested leader visibly
-	 * emerges from the cube's surface). Either falls back to the
-	 * up-right diagonal at screen edges.
+	 * emerges from the cube's surface). Both fall back to other
+	 * diagonals when the screen edge demands it.
 	 */
-	private static calloutFor(picked: { tx?: TxInfo }): { lift: number; prefer: 'tr' | 'bl' } {
+	private static calloutFor(picked: { tx?: TxInfo }): { lift: number; prefer: CalloutDir } {
 		return picked.tx
 			? { lift: 0, prefer: 'bl' }
-			: { lift: -theme.layout.cubeSize / 2, prefer: 'bl' };
+			: { lift: -theme.layout.cubeSize / 2, prefer: 'tl' };
 	}
 
 	/** the callout's world-space anchor point (object center + lift) */
@@ -567,8 +571,8 @@ export class SceneView {
 		callout: { root: HTMLDivElement; card: HTMLDivElement },
 		x: number,
 		y: number,
-		prefer: 'tr' | 'bl',
-	): 'tr' | 'bl' {
+		prefer: CalloutDir,
+	): CalloutDir {
 		// x/y components of the inclined leader (angleDeg away from vertical)
 		const rad = (theme.callout.angleDeg * Math.PI) / 180;
 		const runX = theme.callout.liftPx * Math.sin(rad);
@@ -577,12 +581,21 @@ export class SceneView {
 		const h = callout.card.offsetHeight;
 		const m = 8; // screen margin
 
-		const fitsTr = y - runY - 6 - h >= m && x + runX + 6 + w <= window.innerWidth - m;
-		const fitsBl = x - runX - 6 - w >= m && y + runY + 6 + h <= window.innerHeight - m;
-		const dir =
-			prefer === 'tr' ? (fitsTr ? 'tr' : fitsBl ? 'bl' : 'tr') : fitsBl ? 'bl' : fitsTr ? 'tr' : 'bl';
+		const fits: Record<CalloutDir, boolean> = {
+			tr: y - runY - 6 - h >= m && x + runX + 6 + w <= window.innerWidth - m,
+			tl: y - runY - 6 - h >= m && x - runX - 6 - w >= m,
+			bl: x - runX - 6 - w >= m && y + runY + 6 + h <= window.innerHeight - m,
+		};
+		// per-preference fallback chains; the preferred diagonal wins ties
+		const chains: Record<CalloutDir, CalloutDir[]> = {
+			tl: ['tl', 'bl', 'tr'],
+			bl: ['bl', 'tr', 'tl'],
+			tr: ['tr', 'bl', 'tl'],
+		};
+		const dir = chains[prefer].find((d) => fits[d]) ?? prefer;
 
 		callout.root.classList.toggle('callout--tr', dir === 'tr');
+		callout.root.classList.toggle('callout--tl', dir === 'tl');
 		callout.root.classList.toggle('callout--bl', dir === 'bl');
 		callout.root.style.left = `${x}px`;
 		callout.root.style.top = `${y}px`;
