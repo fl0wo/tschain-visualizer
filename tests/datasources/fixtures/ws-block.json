@@ -17,6 +17,7 @@
 		"extras": {
 			"reward": 313940122,
 			"medianFee": 1.1,
+			"totalOutputAmt": 138139871517,
 			"feeRange": [1, 1.02, 1.08, 1.1, 1.6, 2.8, 388.2],
 			"totalFees": 1440122,
 			"avgFee": 299,

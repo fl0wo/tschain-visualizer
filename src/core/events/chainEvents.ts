@@ -49,6 +49,8 @@ export interface BlockInfo {
 	readonly fees?: number;
 	/** median fee rate, sat/vB */
 	readonly medianFee?: number;
+	/** cumulative value moved in the block, display units (BTC) */
+	readonly totalVolume?: number;
 	readonly difficulty?: number;
 	readonly weight?: number;
 	/** part of the initial history backfill — render without animations */

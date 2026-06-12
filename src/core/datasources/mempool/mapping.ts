@@ -34,6 +34,7 @@ export function blockInfoFromDto(dto: MempoolBlockDto, backfill: boolean): Block
 		rewardTotal: btc(dto.extras?.reward),
 		fees: btc(dto.extras?.totalFees),
 		medianFee: dto.extras?.medianFee,
+		totalVolume: btc(dto.extras?.totalOutputAmt ?? undefined),
 		difficulty: dto.difficulty,
 		weight: dto.weight,
 		backfill,

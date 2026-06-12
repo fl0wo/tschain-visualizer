@@ -46,9 +46,6 @@ const EDGE_NORMAL = makeEdgeMaterial(boosted(theme.colors.valid, theme.boost.edg
 const EDGE_GENESIS = makeEdgeMaterial(boosted(theme.colors.edge, theme.boost.edges), WIDTH);
 const EDGE_DIM = makeEdgeMaterial(theme.colors.invalidDim, WIDTH);
 
-/** micro-cubes for live tx-density grids (shared; ~quiet, no bloom) */
-const DENSITY_GEOMETRY = new THREE.BoxGeometry(0.085, 0.085, 0.085);
-const DENSITY_MATERIAL = new THREE.MeshBasicMaterial({ color: theme.colors.edgeQuiet });
 /**
  * Single shared "latest block" material: only one block is the tip at a
  * time, and SceneView breathes its opacity globally — cheaper and
@@ -95,6 +92,13 @@ function drawLabel(
 
 export function shortHash(hash: string): string {
 	return `0x${hash.slice(0, 4)}…${hash.slice(-4)}`;
+}
+
+/** 1381.4 → "1,381" · 42.31 → "42.3" · 0.0042 → "0.004" */
+export function formatVolume(btcValue: number): string {
+	if (btcValue >= 1_000) return Math.round(btcValue).toLocaleString('en-US');
+	if (btcValue >= 10) return btcValue.toFixed(1);
+	return btcValue.toFixed(3);
 }
 
 export class BlockMesh {
@@ -150,11 +154,11 @@ export class BlockMesh {
 		registerLabel(label); // keep readable at any zoom
 		this.group.add(label);
 
-		// Live blocks carry THOUSANDS of transactions — rendered as
-		// density (one instanced grid, one draw call, no per-tx actors),
-		// never as individual cubes.
+		// Live blocks carry THOUSANDS of transactions — summarized as text
+		// painted on the cube's top face (count + volume moved), never as
+		// individual cubes.
 		if (info.txCount !== undefined && info.transactions.length === 0) {
-			this.addDensityGrid(info.txCount);
+			this.addFaceStats(info.txCount, info.totalVolume);
 		}
 
 		// The block's transactions rest ON THE FLOOR beside the cube's +z
@@ -178,28 +182,34 @@ export class BlockMesh {
 	}
 
 	/**
-	 * Transaction DENSITY for live blocks: a micro-cube grid on the top
-	 * face, instance count scaled by tx count — one InstancedMesh, one
-	 * draw call, zero per-frame work. Aggregate geometry, not actors.
+	 * Live-block summary painted on the TOP FACE: tx count and the
+	 * cumulative BTC moved. Part of the cube's geometry (scales with it,
+	 * unlike the floating labels), rotated 45° in-plane so the text
+	 * reads horizontally from the isometric camera.
 	 */
-	private addDensityGrid(txCount: number): void {
-		const perSide = Math.min(12, Math.max(3, Math.round(Math.sqrt(txCount / 40))));
-		const micro = 0.085;
-		const spacing = (SIZE * 0.82) / perSide;
-		const grid = new THREE.InstancedMesh(DENSITY_GEOMETRY, DENSITY_MATERIAL, perSide * perSide);
-		const matrix = new THREE.Matrix4();
-		for (let i = 0; i < perSide; i++) {
-			for (let j = 0; j < perSide; j++) {
-				matrix.setPosition(
-					(i - (perSide - 1) / 2) * spacing,
-					SIZE / 2 + micro / 2 + 0.02,
-					(j - (perSide - 1) / 2) * spacing,
-				);
-				grid.setMatrixAt(i * perSide + j, matrix);
-			}
+	private addFaceStats(txCount: number, totalVolume?: number): void {
+		const canvas = document.createElement('canvas');
+		canvas.width = 256;
+		canvas.height = 128;
+		const ctx = canvas.getContext('2d')!;
+		ctx.textAlign = 'center';
+		ctx.fillStyle = cssColor(theme.colors.edge);
+		ctx.font = '500 44px "Geist Mono", ui-monospace, monospace';
+		ctx.fillText(`${txCount.toLocaleString('en-US')} tx`, 128, totalVolume === undefined ? 76 : 52);
+		if (totalVolume !== undefined) {
+			ctx.fillStyle = cssColor(theme.colors.textSecondary);
+			ctx.font = '400 32px "Geist Mono", ui-monospace, monospace';
+			ctx.fillText(`${formatVolume(totalVolume)} BTC`, 128, 100);
 		}
-		grid.instanceMatrix.needsUpdate = true;
-		this.group.add(grid);
+
+		const plane = new THREE.Mesh(
+			new THREE.PlaneGeometry(SIZE * 0.94, SIZE * 0.47),
+			new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(canvas), transparent: true }),
+		);
+		plane.rotation.x = -Math.PI / 2;
+		plane.rotation.z = -Math.PI / 4; // face the iso camera's azimuth
+		plane.position.y = SIZE / 2 + 0.012;
+		this.group.add(plane);
 	}
 
 	/** The breathing blue tip treatment — exactly one block at a time. */

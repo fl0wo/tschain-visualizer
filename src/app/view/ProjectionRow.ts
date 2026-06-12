@@ -4,7 +4,7 @@ import type { ProjectedBlock, StreamedTx } from '../../core/events/chainEvents';
 import { CUBE_EDGES, blockPosition } from './BlockMesh';
 import { TextSprite } from './animations/TextSprite';
 import { makeEdgeMaterial } from './edgeMaterials';
-import { boosted, cssColor, prefersReducedMotion, theme } from './theme';
+import { boosted, prefersReducedMotion, theme } from './theme';
 import type { Tweens } from './tween';
 
 /**
@@ -40,9 +40,9 @@ interface Ghost {
 	label: TextSprite;
 }
 
-/** micro-cube for the per-tx arrival pops (geometry shared; material
- *  cloned per pop so each can fade independently) */
-const POP_GEOMETRY = new THREE.BoxGeometry(0.26, 0.26, 0.26);
+/** unit cube for the per-tx arrival pops, scaled per pop by amount
+ *  (geometry shared; material cloned per pop so each fades independently) */
+const POP_GEOMETRY = new THREE.BoxGeometry(1, 1, 1);
 const POP_BASE_MATERIAL = new THREE.MeshBasicMaterial({
 	color: boosted(theme.colors.pending, theme.boost.edges),
 	transparent: true,
@@ -53,6 +53,16 @@ function formatBtc(value: number): string {
 	if (value >= 1) return value.toFixed(2);
 	if (value >= 0.001) return value.toFixed(4);
 	return value.toFixed(6);
+}
+
+/**
+ * BTC amounts span six orders of magnitude, so the pop cube's size maps
+ * the LOG of the value: dust ≈ 0.06 world units, ~0.01 BTC ≈ 0.16,
+ * 1 BTC ≈ 0.27, whale-sized ≥100 BTC caps at 0.37.
+ */
+function popSize(valueBtc: number): number {
+	const t = Math.min(1, Math.max(0, (Math.log10(Math.max(valueBtc, 1e-5)) + 4) / 6));
+	return 0.06 + t * 0.31;
 }
 
 export class ProjectionRow {
@@ -112,6 +122,7 @@ export class ProjectionRow {
 
 			const material = POP_BASE_MATERIAL.clone();
 			const cube = new THREE.Mesh(POP_GEOMETRY, material);
+			const size = popSize(tx.valueBtc); // bigger amount, bigger cube
 			const base = ghost.group.position
 				.clone()
 				.add(
@@ -123,18 +134,18 @@ export class ProjectionRow {
 				);
 			cube.position.copy(base);
 
-			const label = new TextSprite(1.7);
-			label.set([`+${formatBtc(tx.valueBtc)} BTC`], { color: cssColor(theme.colors.valid) });
-			label.sprite.position.copy(base).add(new THREE.Vector3(0, 0.34, 0));
+			const label = new TextSprite(2.4);
+			label.set([`+${formatBtc(tx.valueBtc)} BTC`], { color: '#ffffff' });
+			label.sprite.position.copy(base).add(new THREE.Vector3(0, 0.36, 0));
 			this.group.add(cube, label.sprite);
 
 			void tweens
 				.run(1.4, (t) => {
 					// pop in fast, drift up, fade out late
-					cube.scale.setScalar(Math.min(1, t * 5));
+					cube.scale.setScalar(size * Math.min(1, t * 5));
 					const rise = t * 0.9;
 					cube.position.y = base.y + rise;
-					label.sprite.position.y = base.y + 0.34 + rise;
+					label.sprite.position.y = base.y + 0.36 + rise;
 					const fade = Math.max(0, (t - 0.55) / 0.45);
 					material.opacity = 1 - fade;
 					label.opacity = 1 - fade;

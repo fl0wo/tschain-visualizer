@@ -7,7 +7,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { FXAAShader } from 'three/addons/shaders/FXAAShader.js';
 import type { BlockInfo, TxInfo, ValidationReport } from '../model/ChainModel';
-import { BlockMesh, EDGE_LATEST, blockPosition, shortHash } from './BlockMesh';
+import { BlockMesh, EDGE_LATEST, blockPosition, formatVolume, shortHash } from './BlockMesh';
 import { ChainLinkMesh, EnergyPulse } from './ChainLinkMesh';
 import { MempoolView } from './MempoolView';
 import { ProjectionRow } from './ProjectionRow';
@@ -741,12 +741,17 @@ export class SceneView {
 							block.medianFee !== undefined ? ` · ~${block.medianFee.toFixed(1)} sat/vB` : ''
 						}</div>`
 					: '';
+			const volume =
+				block.totalVolume !== undefined
+					? `<div class="muted">moved <span class="mono">${formatVolume(block.totalVolume)} BTC</span></div>`
+					: '';
 			return (
 				`<div class="card-title">block #${block.index.toLocaleString('en-US')}</div>` +
 				`<div class="mono muted">${shortHash(block.hash)}</div>` +
 				`<div class="muted">nonce <span class="mono">${block.nonce.toLocaleString('en-US')}</span> · ${block.txCount.toLocaleString('en-US')} tx</div>` +
 				reward +
 				fees +
+				volume +
 				`<div><a class="card-link mono" href="https://mempool.space/block/${block.hash}" target="_blank" rel="noopener">view on mempool.space ↗</a></div>`
 			);
 		}

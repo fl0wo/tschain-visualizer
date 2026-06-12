@@ -110,6 +110,7 @@ describe('MempoolSpaceSource', () => {
 		// sats → BTC at the boundary
 		expect(live.rewardTotal).toBeCloseTo(3.13940122, 8);
 		expect(live.fees).toBeCloseTo(0.01440122, 8);
+		expect(live.totalVolume).toBeCloseTo(1381.39871517, 6);
 		expect(live.nonce).toBe(2741998213);
 	});
 

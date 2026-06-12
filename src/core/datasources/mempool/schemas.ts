@@ -32,6 +32,8 @@ export const blockSchema = z
 				totalFees: z.number().optional(),
 				/** median fee rate, sat/vB */
 				medianFee: z.number().optional(),
+				/** total output value moved in the block, sats */
+				totalOutputAmt: z.number().nullable().optional(),
 				feeRange: z.array(z.number()).optional(),
 				pool: z
 					.object({
