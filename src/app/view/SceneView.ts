@@ -448,15 +448,15 @@ export class SceneView {
 	}
 
 	/**
-	 * Per-type callout anchoring: a transaction is annotated from its
-	 * TOP with the leader running up-right (it lives in the floaty upper
-	 * part of the scene); a block from its BASE with the leader running
-	 * down-left (its cube top is busy with tx cubes, and the floor below
-	 * is empty). Each falls back to the other diagonal at screen edges.
+	 * Per-type callout anchoring: both blocks and transactions annotate
+	 * toward the bottom-left — blocks from their BASE, transactions from
+	 * their TOP (a tx cube is small; anchoring at its base would bury
+	 * the dot in the floor grid). Either falls back to the up-right
+	 * diagonal at screen edges.
 	 */
 	private static calloutFor(picked: { tx?: TxInfo }): { lift: number; prefer: 'tr' | 'bl' } {
 		return picked.tx
-			? { lift: theme.layout.txCubeSize * 0.8, prefer: 'tr' }
+			? { lift: theme.layout.txCubeSize * 0.8, prefer: 'bl' }
 			: { lift: -theme.layout.cubeSize / 2, prefer: 'bl' };
 	}
 
