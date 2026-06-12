@@ -250,13 +250,16 @@ export class SceneView {
 		this.mining?.updateReadout(nonce, hashAttempt);
 	}
 
-	/** block:mined — lock readout, then the real block grows out of the
-	 *  floor under the dissolving ghost while the shockwave rolls out
-	 *  beneath it; link draws, mempool drains, confirmations ripple. */
+	/** block:mined — ONE continuous moment: the readout locks and in the
+	 *  same frame the real block starts growing inside the dissolving
+	 *  ghost; the shockwave rolls out a beat later under the now-solid
+	 *  cube; the link draws and the mempool drains alongside. No pauses
+	 *  between phases — a stall followed by simultaneous effects is what
+	 *  reads as a glitchy pop. */
 	async finishMining(info: BlockInfo, difficulty: number): Promise<void> {
 		let ghost: MiningAnimation | null = null;
 		if (this.mining) {
-			await this.mining.succeed(info.nonce, info.hash, difficulty, this.tweens);
+			this.mining.lockReadout(info.nonce, info.hash, difficulty);
 			ghost = this.mining;
 			this.mining = null;
 		}
@@ -269,15 +272,16 @@ export class SceneView {
 		mesh.group.scale.setScalar(0.0001);
 		const grown = this.tweens.run(
 			theme.timing.blockGrow,
-			(t) => mesh.group.scale.setScalar(t),
+			(t) => mesh.group.scale.setScalar(Math.max(t, 0.0001)),
 			{ easing: theme.easing.out },
 		).finished;
 
 		// touchdown effects: the ghost shell dissolves around the growing
-		// block and the shockwave rolls out underneath it
+		// block (its readout lingers, then fades) and the shockwave rolls
+		// out underneath once the cube is solid
 		if (ghost) {
 			const dying = ghost;
-			void dying.fadeOut(this.tweens).then(() => dying.dispose());
+			void dying.dissolve(this.tweens).then(() => dying.dispose());
 			void dying.playShockwave(this.tweens);
 		}
 

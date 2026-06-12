@@ -199,11 +199,14 @@ export const theme = {
 		rejectFall: 1.1,
 		// mining
 		readoutHz: 10,
+		/** how long the locked winning-hash readout lingers before fading */
 		mineLockHold: 0.9,
 		/** the real block growing out of the floor */
 		blockGrow: 0.45,
 		/** the ghost shell dissolving around it */
 		ghostFade: 0.3,
+		/** beat between touchdown and the ring (cube must be solid first) */
+		shockwaveDelay: 0.12,
 		shockwave: 0.8,
 		txFlight: 0.65,
 		txFlightStaggerMs: 60,

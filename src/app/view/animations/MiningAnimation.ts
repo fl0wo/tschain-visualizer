@@ -80,26 +80,27 @@ export class MiningAnimation {
 	}
 
 	/**
-	 * Found it. Lock the readout with the leading zeros highlighted and
-	 * hold a beat so the user can see WHY this hash wins. The shockwave
-	 * and the ghost's dissolve are separate (playShockwave / fadeOut):
-	 * they belong to the moment the REAL block lands, not to the readout.
+	 * Found it. Lock the readout with the leading zeros highlighted —
+	 * synchronous on purpose: the block must start landing in the SAME
+	 * frame. A wait here (the old design) froze the scene for a beat and
+	 * then released five effects at once, which read as a glitchy pop.
 	 */
-	async succeed(nonce: number, hash: string, difficulty: number, tweens: Tweens): Promise<void> {
-		this.done = true;
+	lockReadout(nonce: number, hash: string, difficulty: number): void {
+		this.done = true; // stop the search flicker
 		this.edgeMaterial.opacity = 1;
 		this.readout.set([`nonce ${nonce.toLocaleString('en-US')} ✓`, `0x${hash.slice(0, 20)}…`], {
 			highlightPrefix: 2 + difficulty, // '0x' + the leading zeros
 		});
-		await tweens.wait(theme.timing.mineLockHold);
 	}
 
 	/**
-	 * One crisp ring expanding across the floor — fired WHILE the solid
-	 * block lands on it, so depth testing keeps the ring underneath the
-	 * cube instead of shining through the translucent ghost.
+	 * One crisp ring expanding across the floor. Slightly delayed and
+	 * starting just OUTSIDE the cube footprint, so it appears around an
+	 * already-solid block (never shining through the dissolving ghost)
+	 * and reads as rolling out from underneath it.
 	 */
 	async playShockwave(tweens: Tweens): Promise<void> {
+		await tweens.wait(theme.timing.shockwaveDelay);
 		const ring = new THREE.Mesh(
 			RING_GEOMETRY,
 			new THREE.MeshBasicMaterial({
@@ -111,11 +112,14 @@ export class MiningAnimation {
 		);
 		ring.rotation.x = -Math.PI / 2;
 		ring.position.set(this.position.x, 0.02, this.position.z);
+		// scale 2 puts the inner radius (0.45·2 = 0.9) past the cube's
+		// half-width (0.8): the ring is born at the cube's feet, not in it
+		ring.scale.setScalar(2);
 		this.scene.add(ring);
 		await tweens.run(
 			theme.timing.shockwave,
 			(t) => {
-				ring.scale.setScalar(1 + t * 9);
+				ring.scale.setScalar(2 + t * 9);
 				(ring.material as THREE.MeshBasicMaterial).opacity = 1 - t;
 			},
 			{ easing: theme.easing.out },
@@ -125,18 +129,21 @@ export class MiningAnimation {
 	}
 
 	/**
-	 * The ghost dissolves as the real block grows inside it: edges and
-	 * body fade while the shell expands slightly — the outward drift also
-	 * keeps its faces from z-fighting with the coincident real cube.
+	 * The exit, in two beats: the SHELL dissolves right away (fading
+	 * edges/body, drifting slightly outward — which also avoids
+	 * z-fighting with the coincident real cube growing inside), while
+	 * the READOUT lingers overhead so the winning hash stays readable,
+	 * then fades on its own clock.
 	 */
-	async fadeOut(tweens: Tweens): Promise<void> {
-		this.done = true; // stop the flicker fighting the fade
+	async dissolve(tweens: Tweens): Promise<void> {
+		this.done = true;
 		await tweens.run(theme.timing.ghostFade, (t) => {
 			this.edgeMaterial.opacity = 1 - t;
 			this.bodyMaterial.opacity = 0.3 * (1 - t);
-			this.readout.opacity = 1 - t;
 			this.group.scale.setScalar(1 + 0.08 * t);
 		}).finished;
+		await tweens.wait(theme.timing.mineLockHold);
+		await tweens.run(0.3, (t) => (this.readout.opacity = 1 - t)).finished;
 	}
 
 	dispose(): void {
