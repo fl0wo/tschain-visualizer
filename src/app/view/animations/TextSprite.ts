@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { registerLabel, unregisterLabel } from '../labels';
 import { cssColor, theme } from '../theme';
 
 /**
@@ -22,6 +23,7 @@ export class TextSprite {
 			new THREE.SpriteMaterial({ map: this.texture, transparent: true, depthTest: false }),
 		);
 		this.sprite.scale.set(worldWidth, worldWidth / 4, 1);
+		registerLabel(this.sprite); // keep readable at any zoom
 	}
 
 	/**
@@ -66,6 +68,7 @@ export class TextSprite {
 	}
 
 	dispose(): void {
+		unregisterLabel(this.sprite);
 		this.texture.dispose();
 		(this.sprite.material as THREE.SpriteMaterial).dispose();
 	}

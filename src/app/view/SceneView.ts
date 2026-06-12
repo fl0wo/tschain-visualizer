@@ -12,6 +12,7 @@ import { ChainLinkMesh, EnergyPulse } from './ChainLinkMesh';
 import { MempoolView } from './MempoolView';
 import { TxCubeMesh } from './TxCubeMesh';
 import { updateEdgeResolutions } from './edgeMaterials';
+import { compensateLabelZoom } from './labels';
 import { ConfirmationAnimation } from './animations/ConfirmationAnimation';
 import { MiningAnimation } from './animations/MiningAnimation';
 import { SigningAnimation } from './animations/SigningAnimation';
@@ -610,6 +611,9 @@ export class SceneView {
 
 		this.maybeFollow();
 		this.controls.update();
+
+		// labels stay screen-constant: dezooming grows them in world units
+		compensateLabelZoom(this.camera.zoom);
 
 		// callouts last, so they track this frame's camera, not the previous one's
 		this.updateHoverCallout();

@@ -5,6 +5,7 @@ import type { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import type { BlockInfo } from '../model/ChainModel';
 import { TxCubeMesh } from './TxCubeMesh';
 import { makeEdgeMaterial } from './edgeMaterials';
+import { registerLabel } from './labels';
 import { boosted, cssColor, theme } from './theme';
 
 /**
@@ -129,6 +130,7 @@ export class BlockMesh {
 		);
 		label.scale.set(2.2, 0.82, 1);
 		label.position.y = -(SIZE / 2 + 0.65);
+		registerLabel(label); // keep readable at any zoom
 		this.group.add(label);
 
 		// The block's transactions ride on top as settled mini cubes.
