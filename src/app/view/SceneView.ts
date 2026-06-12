@@ -357,17 +357,29 @@ export class SceneView {
 		this.mining?.updateReadout(nonce, hashAttempt);
 	}
 
+	/** Engine-agnostic ghost readout (PoS slot/attestation lines, …). */
+	updateReadoutLines(lines: [string] | [string, string]): void {
+		this.mining?.setLines(lines);
+	}
+
 	/** block:mined — ONE continuous moment: the readout locks and in the
 	 *  same frame the real block starts growing inside the dissolving
 	 *  ghost; the shockwave rolls out a beat later under the now-solid
 	 *  cube; the link draws and the mempool drains alongside. No pauses
 	 *  between phases — a stall followed by simultaneous effects is what
 	 *  reads as a glitchy pop. */
-	async finishMining(info: BlockInfo, difficulty: number): Promise<void> {
+	async finishMining(
+		info: BlockInfo,
+		difficulty: number,
+		lockLines?: [string] | [string, string],
+	): Promise<void> {
 		const displayIndex = this.blocks.length; // where this block will land
 		let ghost: MiningAnimation | null = null;
 		if (this.mining) {
-			this.mining.lockReadout(info.nonce, info.hash, difficulty);
+			// PoW locks the winning nonce/hash; other engines lock their own
+			// final lines (a PoS slot has no nonce worth celebrating)
+			if (lockLines) this.mining.lockLines(lockLines);
+			else this.mining.lockReadout(info.nonce, info.hash, difficulty);
 			ghost = this.mining;
 			this.mining = null;
 		}

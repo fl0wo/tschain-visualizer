@@ -1,8 +1,18 @@
 import type { DataSource } from '../../core/datasources/DataSource';
 import type { TypedEventEmitter } from '../../core/events';
 import type { ChainEvents, SourceStatus } from '../../core/events/chainEvents';
-import type { Simulation } from '../controller/Simulation';
-import type { ChainModel } from '../model/ChainModel';
+
+/** any model that owns the event stream (ChainModel, PosChainModel, …) */
+interface EventfulModel {
+	readonly events: TypedEventEmitter<ChainEvents>;
+}
+
+/** any simulation with the playback trio (BaseSimulation subclasses) */
+interface PlayableSimulation {
+	start(): void;
+	resume(): void;
+	pause(): void;
+}
 
 /**
  * The engine-driven flow behind the DataSource seam — a pure wrapper,
@@ -17,8 +27,8 @@ export class SimulatedSource implements DataSource {
 	private started = false;
 
 	constructor(
-		private readonly model: ChainModel,
-		private readonly simulation: Simulation,
+		private readonly model: EventfulModel,
+		private readonly simulation: PlayableSimulation,
 	) {}
 
 	get status(): SourceStatus {

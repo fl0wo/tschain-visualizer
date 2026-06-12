@@ -70,6 +70,18 @@ export class MiningAnimation {
 		this.readout.set([`nonce ${nonce.toLocaleString('en-US')}`, `0x${hashAttempt.slice(0, 20)}…`]);
 	}
 
+	/** Engine-agnostic readout (PoS slots, attestation counts, …). */
+	setLines(lines: [string] | [string, string]): void {
+		if (!this.done) this.readout.set(lines);
+	}
+
+	/** Lock arbitrary final lines (the non-PoW cousin of lockReadout). */
+	lockLines(lines: [string] | [string, string]): void {
+		this.done = true;
+		this.edgeMaterial.opacity = 1;
+		this.readout.set(lines);
+	}
+
 	/** Per-frame: the nervous blue edge flicker of an ongoing search. */
 	update(dt: number): void {
 		if (this.done || prefersReducedMotion()) return;

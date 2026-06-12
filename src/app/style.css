@@ -542,6 +542,45 @@ canvas {
 	animation: pool-win 1.6s ease;
 }
 
+/* validator rows extend pool rows with a status line */
+.validator-row {
+	grid-template-columns: 92px 1fr 70px;
+	grid-template-areas:
+		'name bar share'
+		'name status status';
+}
+
+.validator-row .pool-name {
+	grid-area: name;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.validator-row .pool-bar {
+	grid-area: bar;
+}
+
+.validator-row .pool-share {
+	grid-area: share;
+}
+
+.validator-status {
+	grid-area: status;
+	font-size: 10px;
+	color: var(--valid);
+	min-height: 12px;
+	text-align: right;
+}
+
+.validator-proposing {
+	background: color-mix(in srgb, var(--active) 14%, transparent);
+}
+
+.validator-fill {
+	background: var(--active);
+}
+
 @keyframes pool-win {
 	0% {
 		background: color-mix(in srgb, var(--valid) 25%, transparent);

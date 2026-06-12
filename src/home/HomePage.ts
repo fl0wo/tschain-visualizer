@@ -30,7 +30,7 @@ interface MenuRow {
 const SIMULATIONS: MenuRow = {
 	items: [
 		{ label: 'PoW', sub: 'Proof of Work', route: '/simulate/pow' },
-		{ label: 'PoS', sub: 'Proof of Stake', disabled: true },
+		{ label: 'PoS', sub: 'Proof of Stake', route: '/simulate/pos' },
 		{ label: 'PoA', sub: 'Proof of Authority', disabled: true },
 		{ label: 'PoH', sub: 'Proof of History', disabled: true },
 	],

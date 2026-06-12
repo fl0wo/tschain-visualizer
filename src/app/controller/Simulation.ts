@@ -1,20 +1,17 @@
 import type { ChainModel } from '../model/ChainModel';
+import { BaseSimulation } from './BaseSimulation';
 
 /**
- * # Simulation — an automated "population" of users
+ * # Simulation — an automated "population" of users (proof of work)
  *
- * Drives the Model the way the button panel used to, but on randomized
- * timers: people join the network, pay each other, occasionally try to
- * spend money they don't have (and get rejected), and someone mines
- * whenever enough payments are waiting. The Model cannot tell a
- * Simulation tick from a button click — that substitutability is MVC
- * working as intended.
- *
- * Everything here is deliberately probabilistic. Real blockchain traffic
- * is bursty and uncoordinated; jittered timers and weighted dice get
- * surprisingly close to that texture.
+ * Drives the Model the way a button panel would, on randomized timers:
+ * people join the network, pay each other, occasionally try to spend
+ * money they don't have (and get rejected), and miners race whenever
+ * enough payments are waiting. The Model cannot tell a Simulation tick
+ * from a button click — that substitutability is MVC working as
+ * intended. Timing/playback lives in BaseSimulation.
  */
-export class Simulation {
+export class Simulation extends BaseSimulation {
 	private static readonly NAMES = [
 		'Alice', 'Bob', 'Carol', 'Dave', 'Erin', 'Frank', 'Grace', 'Heidi',
 	];
@@ -22,108 +19,22 @@ export class Simulation {
 
 	/** Only one proof-of-work search at a time, like one local miner. */
 	private mining = false;
-	private stopped = false;
-	private paused = false;
-	private timer: ReturnType<typeof setTimeout> | null = null;
-	private _timeScale = 1;
 
-	constructor(private readonly model: ChainModel) {}
+	constructor(private readonly model: ChainModel) {
+		super();
+	}
 
-	/** Seed the world, then let the random tick loop take over. */
-	start(): void {
+	protected override seed(): void {
 		this.model.createWallet(Simulation.NAMES[0]!);
 		this.model.createWallet(Simulation.NAMES[1]!);
-		this.scheduleTick(800);
-	}
-
-	stop(): void {
-		this.stopped = true;
-		this.clearTimer();
-	}
-
-	// ── playback (debugger transport) ──────────────────────────────────
-
-	/**
-	 * Pause: stop GENERATING new actions. Everything already in motion —
-	 * a mining round mid-search, cubes mid-flight — runs to completion,
-	 * so the scene settles into a consistent state instead of freezing.
-	 */
-	pause(): void {
-		this.paused = true;
-		this.clearTimer();
 	}
 
 	/**
-	 * Advance exactly one beat: a payment, a new wallet, or a mining
-	 * round (whose animation plays at full smoothness — stepping skips
-	 * idle time, never the choreography). Implies pause. Some ticks
-	 * decide to do nothing (a broke sender skips its turn); those are
-	 * retried so every click of ⏭ produces something visible.
+	 * One beat of network life. Priorities mirror reality: an economy
+	 * needs coins before it can have payments, payments accumulate in
+	 * the mempool, miners batch them into blocks.
 	 */
-	stepOnce(): void {
-		this.pause();
-		for (let attempts = 0; attempts < 8; attempts++) {
-			if (this.tick()) return;
-		}
-	}
-
-	/** Resume auto-play at the current time scale. */
-	resume(): void {
-		if (!this.paused || this.stopped) return;
-		this.paused = false;
-		this.scheduleTick(200 / this._timeScale);
-	}
-
-	private clearTimer(): void {
-		if (this.timer !== null) clearTimeout(this.timer);
-		this.timer = null;
-	}
-
-	get timeScale(): number {
-		return this._timeScale;
-	}
-
-	/**
-	 * Speed multiplier for the whole simulation: 2 = events twice as
-	 * often, 0.5 = half as often. Only the *cadence* scales — animations
-	 * and mining keep their natural pace, so speeding up reads as "a
-	 * busier network", not a fast-forwarded video.
-	 */
-	set timeScale(value: number) {
-		this._timeScale = Math.min(16, Math.max(0.05, value));
-		// Re-arm the pending tick at the new pace. Without this, dialing
-		// up from a slow setting would only take effect after the old
-		// (long) delay finally expired. While paused there is nothing to
-		// re-arm — the new pace applies on resume.
-		if (this.timer !== null && !this.stopped && !this.paused) {
-			this.clearTimer();
-			this.scheduleTick(this.nextDelay());
-		}
-	}
-
-	// ── the heartbeat ──────────────────────────────────────────────────
-
-	/** Jittered cadence (~1.4–3.2s at ×1): regular enough to stay alive,
-	 *  irregular enough to feel organic. */
-	private nextDelay(): number {
-		return 1400 + Math.random() * 1800;
-	}
-
-	private scheduleTick(delay: number): void {
-		if (this.stopped || this.paused) return;
-		this.timer = setTimeout(() => {
-			this.tick();
-			this.scheduleTick(this.nextDelay());
-		}, delay / this._timeScale);
-	}
-
-	/**
-	 * One beat of network life; returns whether anything visible
-	 * happened (stepOnce retries the silent beats). Priorities mirror
-	 * reality: an economy needs coins before it can have payments,
-	 * payments accumulate in the mempool, miners batch them into blocks.
-	 */
-	private tick(): boolean {
+	protected override tick(): boolean {
 		const funded = this.model.balances.filter((w) => w.balance > 0);
 
 		// Nobody has coins yet (or mining stopped paying out): mine first.
@@ -149,8 +60,6 @@ export class Simulation {
 		// Default beat: somebody pays somebody.
 		return this.randomPayment(funded);
 	}
-
-	// ── behaviours ─────────────────────────────────────────────────────
 
 	private randomPayment(funded: Array<{ name: string; balance: number }>): boolean {
 		const sender = funded[Math.floor(Math.random() * funded.length)]!;

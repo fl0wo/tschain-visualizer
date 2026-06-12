@@ -14,6 +14,7 @@ framework, no backend.
 |---|---|
 | `/` | the catalog (keyboard-navigable) |
 | `/simulate/pow` | an ambient simulated economy: Ed25519-signed payments, a paced-but-real SHA-256 mining race with fees and rewards, double-spend rejections, tamper-evident chain links — narrated step by step, with debugger-style playback (pause / step / speed) |
+| `/simulate/pos` | the same economy under **proof of stake**: staking validators, a seeded stake-weighted proposer per slot (verifiable from the published seed), ≥⅔ attestations sealing blocks on a clock, small proposer/attester rewards, faucet-funded users |
 | `/live/bitcoin` | the same scene fed by [mempool.space](https://mempool.space): ~10 last real blocks backfilled, amber ghost cubes for the projected next blocks, live transactions popping in with their BTC amounts, pool win-odds, fee tiers, reorg handling |
 
 ## Quick start
