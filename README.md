@@ -1,129 +1,61 @@
 # tschain-visualizer
 
-An **educational blockchain built from scratch in TypeScript**, with a 3D
-visualization in the browser (three.js). No backend, no database, no
-network — everything runs locally, so every moving part is yours to poke.
+A 3D visualizer for learning how blockchains actually work — watch
+consensus happen, simulated or **live**. TypeScript + three.js, no
+framework, no backend.
 
-![simulated network](docs/screenshot.png)
-*The ambient simulation: gold genesis block, mined blocks with transaction spheres, green `previousHash` links, pending payments hovering in the mempool, and the event log narrating it all.*
-
-## The concepts (and where they live)
-
-| Concept | Idea | Code |
-|---|---|---|
-| **Hashing** | A SHA-256 hash is a fingerprint of data: deterministic, and any change produces a completely different hash. Transactions and blocks are identified by their hash, which is what makes tampering detectable. | `src/core/Transaction.ts`, `src/core/Block.ts` |
-| **Signatures** | An Ed25519 keypair: the public key *is* the address, the private key is the ability to spend. Signing the transaction hash proves authorization; anyone can verify with only public data. | `src/core/Wallet.ts` |
-| **Proof-of-work** | A block only counts if its hash starts with N zeros. Finding such a hash is brute force (expensive); checking it is one hash (cheap). Rewriting history means redoing all that work. | `src/core/Block.ts` (`mine`) |
-| **Tamper evidence** | Each block stores its parent's hash, and its own hash covers that pointer. Edit any byte of history and the chain breaks loudly at the edit — and stays broken downstream even if you re-mine. | `src/core/Blockchain.ts` (`isChainValid`) |
-| **Derived state** | There is no balances table. Balances and nonces are recomputed by replaying the chain — the history *is* the state, so ledger and state can never disagree. | `src/core/Blockchain.ts` (`getBalance`) |
-| **Double-spend prevention** | Two transactions can both be perfectly signed and still spend the same coin. The mempool checks balance (counting already-pending spends) and a dense per-sender nonce sequence before admitting anything. | `src/core/Mempool.ts` |
-| **Confirmations** | A transaction buried N blocks deep needs N proof-of-works redone to undo it. Depth = security; that's why exchanges wait for ~6 confirmations. | `src/core/Blockchain.ts` (`getConfirmations`) |
-
-## Running it
-
-```bash
-pnpm install        # or npm install
-
-npm test            # 37 unit tests — one file per core concept
-npm run demo        # narrated console walkthrough (mining, double-spend, tampering)
-npm run dev         # 3D visualizer at http://localhost:5173
-npm run build       # type-check + production bundle
-```
-
-## Watching the visualizer
-
-The app runs itself — a simulated population of users acts out a small
-economy while you watch (and orbit the camera with the mouse):
-
-- **Wallets join over time.** Each new name in the HUD is a fresh Ed25519
-  keypair that owns nothing until it mines or gets paid.
-- **Coins are minted by mining.** The pulsing ghost cube is the
-  proof-of-work search — the HUD shows the live nonce and hash attempt;
-  the particle burst is a block landing.
-- **Payments flow randomly.** Signed transactions hover in the floating
-  mempool, then fly into the next mined block. Hover any sphere for
-  from/to/amount, its hash, and signature status.
-- **Some payments get refused.** Roughly one in eight deliberately
-  overspends; the red sphere falling out of the sky is the mempool's
-  balance check doing its job — a valid signature alone is not money.
-- **The chain re-validates after every block** — the HUD verdict stays
-  green as long as nobody rewrites history.
-
-For the interactive lessons that need an attacker (double-spend race,
-tampering with a past block), run the narrated console demo:
-`npm run demo`.
+<img src="docs/gifpow.gif" alt="proof-of-work simulation in the visualizer" width="1280" height="710" />
 
 ## Routes
 
-| Route | What it shows |
+| Route | What you watch |
 |---|---|
-| `/` | the catalog (simulations + live networks, keyboard-navigable) |
-| `/simulate/pow` | the proof-of-work simulation described above |
-| `/live/bitcoin` | **real Bitcoin mainnet, live** — see below |
+| `/` | the catalog (keyboard-navigable) |
+| `/simulate/pow` | an ambient simulated economy: Ed25519-signed payments, a paced-but-real SHA-256 mining race with fees and rewards, double-spend rejections, tamper-evident chain links — narrated step by step, with debugger-style playback (pause / step / speed) |
+| `/live/bitcoin` | the same scene fed by [mempool.space](https://mempool.space): ~10 last real blocks backfilled, amber ghost cubes for the projected next blocks, live transactions popping in with their BTC amounts, pool win-odds, fee tiers, reorg handling |
 
-## Live mode (`/live/bitcoin`)
+## Quick start
 
-The same scene, fed by real data instead of the simulation engine:
-
-```
-mempool.space ──WS+REST──▶ MempoolSpaceSource ──ChainEvents──▶ Presenter ──▶ SceneView/Hud
-   (wire DTOs)              (zod-validated,        (the same       (live copy)   (shared with
-                             mapped at boundary)    vocabulary)                   the simulation)
-```
-
-- A `DataSource` is anything that speaks the `ChainEvents` vocabulary —
-  the View cannot tell the simulator and the live adapter apart, so a UI
-  change to blocks/links/tooltips applies to both pages automatically.
-- On load, the last ~10 real blocks backfill instantly (mining pool,
-  reward, fees on each), then the page streams: amber ghost cubes ahead
-  of the tip are the **mempool projection** (the templated next blocks,
-  reflowing as fees shift); when a real block confirms (~every 10 min)
-  the nearest ghost solidifies with the real hash's leading zeros
-  highlighted and the pool's reward floating off the block.
-- Live blocks render transaction **density** (one instanced micro-cube
-  grid per block) — thousands of txs, one draw call, no per-tx actors.
-- Resilient by design: exponential-backoff reconnect, staleness
-  watchdog, REST resync after every reconnect, and reorg handling (the
-  orphaned blocks dim gray — probabilistic finality, live).
-- Live data by [mempool.space](https://mempool.space). No API key; one
-  WebSocket; REST responses cached by block hash.
-
-**Adding a live adapter for another chain:** implement `DataSource`
-(`src/core/datasources/DataSource.ts`) — emit a `block:mined` backfill
-then stream, validating wire payloads at the boundary and mapping them
-into `ChainEvents` (see `mempool/mapping.ts` for the pattern); compose a
-presenter that picks page copy, and register a route. Nothing in the
-View needs to change.
-
-## Architecture
-
-```
-src/
-  core/          Phase 1 — pure domain logic, zero DOM/three.js imports
-    Transaction  deterministic serialization + SHA-256 identity
-    Wallet       Ed25519 keypair, sign/verify
-    Block        PoW mining (async chunked, UI-friendly)
-    Blockchain   tamper-evident linked list, derived state
-    Mempool      admission pipeline: signature → balance → nonce
-    events       tiny typed EventEmitter (the Model→View seam)
-  app/           Phase 2 — MVC
-    model/       ChainModel: wraps core, emits typed events
-    view/        SceneView, BlockMesh, ChainLinkMesh, MempoolView, Hud
-    controller/  Controller: model events → view updates
-                 Simulation: randomized "users" driving the model over time
-  demo.ts        narrated console story (npx tsx src/demo.ts)
-tests/           vitest, one file per core class
+```bash
+pnpm install
+npm run dev     # visualizer at http://localhost:5173
+npm test        # 57 unit tests (core, model, live adapter — all offline)
+npm run demo    # narrated console walkthrough of the core chain
 ```
 
-The Model never imports three.js or touches the DOM; the View never
-computes a blockchain rule. The git history is one commit per step, so
-`git log` reads as the build-up of the concepts above.
+## How it works
 
-## Honest limitations (also educational)
+```
+core/        pure domain logic, zero DOM/three imports
+  Transaction · Wallet · Block · Blockchain · Mempool   (the educational chain)
+  events/chainEvents.ts     the ONE event vocabulary both sources speak
+  datasources/              DataSource seam + mempool.space adapter
+                            (zod-validated wire → domain mapping, reconnect/resync/reorg)
+app/
+  model/ChainModel          wraps the core, emits typed events
+  view/                     three.js scene + HUD (edge-lit cubes, callouts, narrator)
+  controller/, live/        per-page wiring: simulation Controller / live Presenter
+```
 
-- One node, no network: there is no consensus to win, so "longest chain"
-  never comes into play — `getConfirmations` explains what *would* happen.
-- Flat transaction list per block instead of a Merkle tree.
-- Coinbase amounts aren't consensus-checked, and there are no fees.
-- Mining runs on the main thread in async chunks (simple, frame-friendly);
-  a Web Worker would mine faster but complicate the code.
+The View only ever consumes events — it cannot tell the simulator from
+the live adapter, so every UI improvement applies to both pages. Adding
+a live adapter for another chain = implement `DataSource`, map wire
+payloads into `ChainEvents` at the boundary, register a route.
+
+## Honest by design
+
+Education over spectacle, but never fake: signatures are real Ed25519,
+the simulated proof-of-work is a real (low-difficulty, deliberately
+paced — your battery is safe) SHA-256 search, live data is real mainnet.
+Where reality can't be shown, the UI says so — e.g. nobody can list who
+is "currently mining", so the live pools panel shows each pool's recent
+block share, which *is* its odds of winning the next block.
+
+## Credits
+
+Live Bitcoin data by [mempool.space](https://mempool.space). Fonts:
+[Geist](https://vercel.com/font) via Google Fonts.
+
+## License
+
+[MIT](LICENSE)
