@@ -71,6 +71,7 @@ export class SceneView {
 	private hoverKey: string | null = null;
 	private pinnedTarget: THREE.Object3D | null = null;
 	private pinnedLift = 0;
+	private pinnedPrefer: 'tr' | 'bl' = 'bl';
 	private readonly projVec = new THREE.Vector3();
 
 	constructor(container: HTMLElement) {
@@ -388,9 +389,17 @@ export class SceneView {
 		return tx ? { object: hit.object, tx } : block ? { object: hit.object, block } : null;
 	}
 
-	/** world-space lift so the anchor dot sits just above the cube's top */
-	private static liftFor(picked: { tx?: TxInfo }): number {
-		return picked.tx ? theme.layout.txCubeSize * 0.8 : theme.layout.cubeSize * 0.62;
+	/**
+	 * Per-type callout anchoring: a transaction is annotated from its
+	 * TOP with the leader running up-right (it lives in the floaty upper
+	 * part of the scene); a block from its BASE with the leader running
+	 * down-left (its cube top is busy with tx cubes, and the floor below
+	 * is empty). Each falls back to the other diagonal at screen edges.
+	 */
+	private static calloutFor(picked: { tx?: TxInfo }): { lift: number; prefer: 'tr' | 'bl' } {
+		return picked.tx
+			? { lift: theme.layout.txCubeSize * 0.8, prefer: 'tr' }
+			: { lift: -theme.layout.cubeSize / 2, prefer: 'bl' };
 	}
 
 	/** project an object (plus a world-Y lift) to CSS pixel coordinates */
@@ -406,25 +415,42 @@ export class SceneView {
 
 	/**
 	 * Place a callout: the root sits ON the anchor point (where the
-	 * first dot lives); the card floats `--callout-lift` above it — or
-	 * below, when the anchor is too close to the top of the screen. The
-	 * card may shift sideways to stay on-screen; the dots and line stay
-	 * glued to the anchor.
+	 * first dot lives); the leader runs 45° to the card in the preferred
+	 * diagonal — top-right or bottom-left — falling back to the other
+	 * one when the card would leave the screen. The card may also slide
+	 * sideways as a last resort; the dots and line stay glued to the
+	 * anchor.
 	 */
 	private positionCallout(
 		callout: { root: HTMLDivElement; card: HTMLDivElement },
 		x: number,
 		y: number,
+		prefer: 'tr' | 'bl',
 	): void {
+		const run = theme.callout.liftPx * Math.SQRT1_2; // 45° components
+		const w = callout.card.offsetWidth;
+		const h = callout.card.offsetHeight;
+		const m = 8; // screen margin
+
+		const fitsTr = y - run - 6 - h >= m && x + run + 6 + w <= window.innerWidth - m;
+		const fitsBl = x - run - 6 - w >= m && y + run + 6 + h <= window.innerHeight - m;
+		const dir =
+			prefer === 'tr' ? (fitsTr ? 'tr' : fitsBl ? 'bl' : 'tr') : fitsBl ? 'bl' : fitsTr ? 'tr' : 'bl';
+
+		callout.root.classList.toggle('callout--tr', dir === 'tr');
+		callout.root.classList.toggle('callout--bl', dir === 'bl');
 		callout.root.style.left = `${x}px`;
 		callout.root.style.top = `${y}px`;
-		const below = y - theme.callout.liftPx - callout.card.offsetHeight - 12 < 0;
-		callout.root.classList.toggle('callout--below', below);
 
-		const half = callout.card.offsetWidth / 2;
+		// horizontal clamp: slide only the card, never the leader
 		let shift = 0;
-		if (x - half < 8) shift = 8 - (x - half);
-		else if (x + half > window.innerWidth - 8) shift = window.innerWidth - 8 - (x + half);
+		if (dir === 'tr') {
+			const cardLeft = x + run + 6;
+			shift = Math.min(0, window.innerWidth - m - (cardLeft + w));
+		} else {
+			const cardLeft = x - run - 6 - w;
+			shift = Math.max(0, m - cardLeft);
+		}
 		callout.card.style.marginLeft = `${shift}px`;
 	}
 
@@ -445,8 +471,9 @@ export class SceneView {
 			this.hover.card.innerHTML = this.cardHtml(picked);
 		}
 		this.hover.root.style.display = 'block';
-		const anchor = this.projectToScreen(picked.object, SceneView.liftFor(picked));
-		this.positionCallout(this.hover, anchor.x, anchor.y);
+		const { lift, prefer } = SceneView.calloutFor(picked);
+		const anchor = this.projectToScreen(picked.object, lift);
+		this.positionCallout(this.hover, anchor.x, anchor.y, prefer);
 	}
 
 	private updatePinnedCallout(): void {
@@ -459,7 +486,7 @@ export class SceneView {
 			return;
 		}
 		const anchor = this.projectToScreen(this.pinnedTarget, this.pinnedLift);
-		this.positionCallout(this.pinned, anchor.x, anchor.y);
+		this.positionCallout(this.pinned, anchor.x, anchor.y, this.pinnedPrefer);
 	}
 
 	private closePinned(): void {
@@ -503,7 +530,9 @@ export class SceneView {
 			this.cardHtml(picked) +
 			confirmations;
 		this.pinnedTarget = picked.object;
-		this.pinnedLift = SceneView.liftFor(picked);
+		const { lift, prefer } = SceneView.calloutFor(picked);
+		this.pinnedLift = lift;
+		this.pinnedPrefer = prefer;
 		this.pinned.root.style.display = 'block';
 		this.updatePinnedCallout();
 		if (picked.tx) this.onTxPinned?.(picked.tx);

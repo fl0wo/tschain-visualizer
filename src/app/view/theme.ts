@@ -115,9 +115,12 @@ export const theme = {
 		followDuration: 1.0,
 	},
 
-	/** hover/pinned dialog callout: dot · leader line · dot · card */
+	/** hover/pinned dialog callout: dot · leader line · dot · card.
+	 *  The leader runs at 45° — up-right for transactions (anchored at
+	 *  the cube top), down-left for blocks (anchored at the base) —
+	 *  flipping to the other diagonal when the screen edge demands it. */
 	callout: {
-		/** how far (px) the card floats above the anchored object */
+		/** diagonal distance (px) between the anchor dot and the card dot */
 		liftPx: 76,
 		dotPx: 5,
 	},
@@ -213,5 +216,7 @@ export function applyCssVars(): void {
 	root.setProperty('--hover-ms', `${theme.timing.hoverMs}ms`);
 	root.setProperty('--ticker-ms', `${theme.timing.tickerMs}ms`);
 	root.setProperty('--callout-lift', `${theme.callout.liftPx}px`);
+	// horizontal/vertical component of the 45° diagonal (lift / √2)
+	root.setProperty('--callout-run', `${(theme.callout.liftPx * Math.SQRT1_2).toFixed(1)}px`);
 	root.setProperty('--callout-dot', `${theme.callout.dotPx}px`);
 }

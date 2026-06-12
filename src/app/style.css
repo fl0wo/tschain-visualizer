@@ -225,10 +225,12 @@ canvas {
 
 /* ── callout dialogs (hover + pinned) ──────────────────────────────────
    The root div sits ON the object's projected screen position; a dot
-   marks the anchor, a thin leader line runs up to a second dot, and the
-   card floats above it — so the dialog never sits on top of the object
-   it describes. `.callout--below` mirrors everything downward when the
-   anchor is too close to the top of the screen. */
+   marks the anchor, a thin 45° leader line runs to a second dot, and
+   the card hangs off that — so the dialog never sits on top of the
+   object it describes. Two diagonals: `.callout--tr` runs up-right
+   (transactions, anchored at the cube top), `.callout--bl` runs
+   down-left (blocks, anchored at the base). --callout-run is the
+   horizontal/vertical component of the diagonal (lift / √2). */
 
 .callout {
 	position: fixed;
@@ -238,38 +240,31 @@ canvas {
 
 .callout-dot {
 	position: absolute;
+	left: 0;
+	top: 0;
 	width: var(--callout-dot);
 	height: var(--callout-dot);
 	border-radius: 50%;
 	background: var(--text-secondary);
 	transform: translate(-50%, -50%);
-	left: 0;
 }
 
-.callout-dot-anchor {
-	top: 0;
-}
-
-.callout-dot-card {
-	top: calc(-1 * var(--callout-lift));
-}
-
+/* the leader: a 1px vertical bar rotated about the anchor; the small
+   pre-rotation translate backs it 5px off the anchor dot along the
+   diagonal (matched by the length being 10px short of the full lift) */
 .callout-line {
 	position: absolute;
 	left: 0;
-	top: calc(-1 * var(--callout-lift) + 5px);
+	top: 0;
 	width: 1px;
 	height: calc(var(--callout-lift) - 10px);
 	background: var(--text-secondary);
 	opacity: 0.55;
-	transform: translateX(-50%);
+	transform-origin: 0 0;
 }
 
 .callout-card {
 	position: absolute;
-	left: 0;
-	top: calc(-1 * var(--callout-lift) - 6px);
-	transform: translate(-50%, -100%);
 	min-width: 180px;
 	width: max-content;
 	max-width: 280px;
@@ -283,18 +278,36 @@ canvas {
 	animation: callout-in var(--hover-ms) ease;
 }
 
-/* mirrored layout when the card must sit below the anchor */
-.callout--below .callout-dot-card {
-	top: var(--callout-lift);
+/* up-right: rotate(225deg) swings the down-pointing bar to up-right */
+.callout--tr .callout-dot-card {
+	left: var(--callout-run);
+	top: calc(-1 * var(--callout-run));
 }
 
-.callout--below .callout-line {
-	top: 5px;
+.callout--tr .callout-line {
+	transform: translate(3.5px, -3.5px) rotate(225deg);
 }
 
-.callout--below .callout-card {
-	top: calc(var(--callout-lift) + 6px);
-	transform: translate(-50%, 0);
+.callout--tr .callout-card {
+	left: calc(var(--callout-run) + 6px);
+	top: calc(-1 * var(--callout-run) - 6px);
+	transform: translate(0, -100%);
+}
+
+/* down-left: rotate(45deg) swings it to down-left */
+.callout--bl .callout-dot-card {
+	left: calc(-1 * var(--callout-run));
+	top: var(--callout-run);
+}
+
+.callout--bl .callout-line {
+	transform: translate(-3.5px, 3.5px) rotate(45deg);
+}
+
+.callout--bl .callout-card {
+	left: calc(-1 * var(--callout-run) - 6px);
+	top: calc(var(--callout-run) + 6px);
+	transform: translate(-100%, 0);
 }
 
 /* the pinned variant takes the focus accent and accepts clicks */
