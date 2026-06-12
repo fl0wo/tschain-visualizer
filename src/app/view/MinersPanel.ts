@@ -33,9 +33,10 @@ export class MinersPanel {
 	private readonly rows = new Map<string, MinerRow>();
 	private ticker: ReturnType<typeof setInterval> | null = null;
 
-	constructor(root: HTMLElement) {
+	constructor(root: HTMLElement, options: { hidden?: boolean } = {}) {
 		const panel = document.createElement('div');
 		panel.className = 'panel miners-panel';
+		if (options.hidden) panel.style.display = 'none';
 		panel.innerHTML = `
 			<h2>Mining race <span class="miners-note">simulated telemetry</span></h2>
 			<div class="miners-list" data-miners><em class="muted">waiting for the first race…</em></div>`;

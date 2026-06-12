@@ -45,6 +45,10 @@ const EDGE_NORMAL = makeEdgeMaterial(boosted(theme.colors.valid, theme.boost.edg
 /** genesis: neutral white — agreed upon, not mined, outside the teal economy */
 const EDGE_GENESIS = makeEdgeMaterial(boosted(theme.colors.edge, theme.boost.edges), WIDTH);
 const EDGE_DIM = makeEdgeMaterial(theme.colors.invalidDim, WIDTH);
+
+/** micro-cubes for live tx-density grids (shared; ~quiet, no bloom) */
+const DENSITY_GEOMETRY = new THREE.BoxGeometry(0.085, 0.085, 0.085);
+const DENSITY_MATERIAL = new THREE.MeshBasicMaterial({ color: theme.colors.edgeQuiet });
 /**
  * Single shared "latest block" material: only one block is the tip at a
  * time, and SceneView breathes its opacity globally — cheaper and
@@ -96,6 +100,8 @@ export function shortHash(hash: string): string {
 export class BlockMesh {
 	readonly group = new THREE.Group();
 	readonly index: number;
+	/** the block's hash — lets the scene find meshes by identity (reorgs) */
+	readonly blockHash: string;
 	/** raycast target carrying userData.block */
 	readonly body: THREE.Mesh;
 	/** mini cubes for the block's transactions (hover targets) */
@@ -108,10 +114,18 @@ export class BlockMesh {
 	private dimmed = false;
 	private latest = false;
 
-	constructor(info: BlockInfo) {
+	/**
+	 * @param displayIndex position along the scene's chain axis — the
+	 *   arrival order, NOT the block height. Simulated chains start at 0
+	 *   so both coincide; live Bitcoin heights (~900 000) would put the
+	 *   cube three million units away, so the scene maps order → space
+	 *   and the label keeps the real height.
+	 */
+	constructor(info: BlockInfo, displayIndex: number = info.index) {
 		this.index = info.index;
+		this.blockHash = info.hash;
 		this.info = info;
-		this.group.position.copy(blockPosition(info.index));
+		this.group.position.copy(blockPosition(displayIndex));
 
 		this.body = new THREE.Mesh(CUBE_GEOMETRY, BODY_MATERIAL);
 		this.body.userData.block = info;
@@ -136,6 +150,13 @@ export class BlockMesh {
 		registerLabel(label); // keep readable at any zoom
 		this.group.add(label);
 
+		// Live blocks carry THOUSANDS of transactions — rendered as
+		// density (one instanced grid, one draw call, no per-tx actors),
+		// never as individual cubes.
+		if (info.txCount !== undefined && info.transactions.length === 0) {
+			this.addDensityGrid(info.txCount);
+		}
+
 		// The block's transactions rest ON THE FLOOR beside the cube's +z
 		// face — which reads as screen bottom-left at the iso angle — in
 		// pairs of two: a tidy grid-aligned receipt pad, not a floating
@@ -154,6 +175,31 @@ export class BlockMesh {
 			this.txCubes.push(cube);
 			this.group.add(cube.group);
 		});
+	}
+
+	/**
+	 * Transaction DENSITY for live blocks: a micro-cube grid on the top
+	 * face, instance count scaled by tx count — one InstancedMesh, one
+	 * draw call, zero per-frame work. Aggregate geometry, not actors.
+	 */
+	private addDensityGrid(txCount: number): void {
+		const perSide = Math.min(12, Math.max(3, Math.round(Math.sqrt(txCount / 40))));
+		const micro = 0.085;
+		const spacing = (SIZE * 0.82) / perSide;
+		const grid = new THREE.InstancedMesh(DENSITY_GEOMETRY, DENSITY_MATERIAL, perSide * perSide);
+		const matrix = new THREE.Matrix4();
+		for (let i = 0; i < perSide; i++) {
+			for (let j = 0; j < perSide; j++) {
+				matrix.setPosition(
+					(i - (perSide - 1) / 2) * spacing,
+					SIZE / 2 + micro / 2 + 0.02,
+					(j - (perSide - 1) / 2) * spacing,
+				);
+				grid.setMatrixAt(i * perSide + j, matrix);
+			}
+		}
+		grid.instanceMatrix.needsUpdate = true;
+		this.group.add(grid);
 	}
 
 	/** The breathing blue tip treatment — exactly one block at a time. */

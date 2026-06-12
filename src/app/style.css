@@ -123,6 +123,67 @@ canvas {
 	}
 }
 
+/* live source status pill (next to the wordmark on live pages) */
+.live-pill {
+	margin-left: 6px;
+	padding: 1px 8px;
+	border-radius: 999px;
+	border: 1px solid var(--border);
+	font-family: 'Geist Mono', ui-monospace, monospace;
+	font-size: 10px;
+	color: var(--text-secondary);
+}
+
+.live-pill[data-state='live'] {
+	color: var(--valid);
+	border-color: var(--valid);
+	animation: blink 2.4s ease infinite;
+}
+
+.live-pill[data-state='connecting'],
+.live-pill[data-state='degraded'] {
+	color: var(--pending);
+	border-color: var(--pending);
+}
+
+.live-pill[data-state='disconnected'] {
+	color: var(--invalid);
+	border-color: var(--invalid);
+}
+
+/* live stats rows + attribution */
+.live-stat {
+	display: flex;
+	justify-content: space-between;
+	padding: 2px 0;
+	color: var(--text-secondary);
+}
+
+.live-stat .mono {
+	color: var(--text);
+	font-size: 12px;
+}
+
+.live-attribution {
+	margin-top: 8px;
+	font-size: 10px;
+	color: var(--text-secondary);
+}
+
+.live-attribution a {
+	color: var(--text-secondary);
+}
+
+.card-link {
+	font-size: 11px;
+	color: var(--active);
+	text-decoration: none;
+}
+
+.card-link:hover {
+	text-decoration: underline;
+}
+
 /* ── right stack: collapse toggle + (speed, wallets) ───────────────── */
 
 .right-stack {

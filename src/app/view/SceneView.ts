@@ -10,6 +10,7 @@ import type { BlockInfo, TxInfo, ValidationReport } from '../model/ChainModel';
 import { BlockMesh, EDGE_LATEST, blockPosition, shortHash } from './BlockMesh';
 import { ChainLinkMesh, EnergyPulse } from './ChainLinkMesh';
 import { MempoolView } from './MempoolView';
+import { ProjectionRow } from './ProjectionRow';
 import { TxCubeMesh } from './TxCubeMesh';
 import { updateEdgeResolutions } from './edgeMaterials';
 import { compensateLabelZoom } from './labels';
@@ -109,6 +110,8 @@ export class SceneView {
 	private readonly links: ChainLinkMesh[] = [];
 	private readonly pulse = new EnergyPulse();
 	readonly mempool = new MempoolView();
+	/** live mempool projection queue (dormant on simulated pages) */
+	private readonly projection = new ProjectionRow();
 
 	private mining: MiningAnimation | null = null;
 	private breatheTime = 0;
@@ -206,6 +209,7 @@ export class SceneView {
 		this.scene.add(grid);
 		this.scene.add(this.mempool.group);
 		this.scene.add(this.pulse.mesh);
+		this.scene.add(this.projection.group);
 
 		// ── post-processing: restrained bloom + FXAA ──
 		this.composer = new EffectComposer(this.renderer);
@@ -254,22 +258,28 @@ export class SceneView {
 
 	// ── chain display ──────────────────────────────────────────────────
 
-	/** Add a block without ceremony (genesis / initial state). */
+	/** How many blocks the scene currently shows (also: the next display index). */
+	get blockCount(): number {
+		return this.blocks.length;
+	}
+
+	/**
+	 * Add a block without ceremony (genesis / backfill / initial state).
+	 * Scene position = ARRIVAL ORDER (display index), not block height —
+	 * live Bitcoin heights would land kilometers away (see BlockMesh).
+	 */
 	addBlock(info: BlockInfo): void {
-		const mesh = new BlockMesh(info);
+		const displayIndex = this.blocks.length;
+		const mesh = new BlockMesh(info, displayIndex);
 		this.blocks.push(mesh);
 		this.scene.add(mesh.group);
-		if (info.index > 0) {
-			const link = new ChainLinkMesh(info.index);
+		if (displayIndex > 0) {
+			const link = new ChainLinkMesh(displayIndex);
 			this.links.push(link);
 			this.scene.add(link.object);
 		}
-		this.setLatest(info.index);
-		this.mempool.setAnchor(blockPosition(info.index).x);
-	}
-
-	private setLatest(index: number): void {
-		for (const block of this.blocks) block.setLatest(block.index === index);
+		this.blocks.forEach((block, i) => block.setLatest(i === displayIndex));
+		this.mempool.setAnchor(blockPosition(displayIndex).x);
 	}
 
 	// ── transaction choreography ───────────────────────────────────────
@@ -319,6 +329,7 @@ export class SceneView {
 	 *  between phases — a stall followed by simultaneous effects is what
 	 *  reads as a glitchy pop. */
 	async finishMining(info: BlockInfo, difficulty: number): Promise<void> {
+		const displayIndex = this.blocks.length; // where this block will land
 		let ghost: MiningAnimation | null = null;
 		if (this.mining) {
 			this.mining.lockReadout(info.nonce, info.hash, difficulty);
@@ -353,7 +364,7 @@ export class SceneView {
 
 		// mined transactions fly home with staggered arcs, landing at the
 		// floor pad beside the block (where BlockMesh placed their twins)
-		const target = blockPosition(info.index).add(
+		const target = blockPosition(displayIndex).add(
 			new THREE.Vector3(
 				0,
 				-(theme.layout.cubeSize / 2) + theme.layout.txCubeSize / 2,
@@ -369,7 +380,28 @@ export class SceneView {
 		// every block below just got one confirmation deeper — ripple it
 		void new ConfirmationAnimation(this.blocks, this.tweens).finished;
 
-		this.requestFollow(blockPosition(info.index).x);
+		this.requestFollow(blockPosition(displayIndex).x);
+	}
+
+	// ── live-data display ──────────────────────────────────────────────
+
+	/** Feed the latest mempool projection (live pages only). */
+	setProjection(blocks: readonly import('../../core/events/chainEvents').ProjectedBlock[]): void {
+		this.projection.update(blocks, this.blocks.length - 1, this.tweens);
+	}
+
+	/** A real block confirmed — the nearest projection ghost is consumed. */
+	consumeProjection(): void {
+		this.projection.consumeNearest();
+	}
+
+	/** Reorg: the listed blocks were orphaned by the network — dim them.
+	 *  (The replacement branch appends after; the dimmed cubes stay as
+	 *  the visible scar — exactly the lesson a reorg teaches.) */
+	markOrphaned(hashes: readonly string[]): void {
+		for (const mesh of this.blocks) {
+			if (hashes.includes(mesh.blockHash)) mesh.setDimmed(true);
+		}
 	}
 
 	/**
@@ -679,6 +711,29 @@ export class SceneView {
 			);
 		}
 		const block = picked.block!;
+		// live blocks carry aggregate stats; simulated blocks carry txs
+		if (block.txCount !== undefined) {
+			const reward =
+				block.rewardTotal !== undefined
+					? `<div class="muted">reward <span class="mono">${block.rewardTotal.toFixed(4)} BTC</span>${
+							block.minerName ? ` → ${block.minerName}` : ''
+						}</div>`
+					: '';
+			const fees =
+				block.fees !== undefined
+					? `<div class="muted">fees <span class="mono">${block.fees.toFixed(4)} BTC</span>${
+							block.medianFee !== undefined ? ` · ~${block.medianFee.toFixed(1)} sat/vB` : ''
+						}</div>`
+					: '';
+			return (
+				`<div class="card-title">block #${block.index.toLocaleString('en-US')}</div>` +
+				`<div class="mono muted">${shortHash(block.hash)}</div>` +
+				`<div class="muted">nonce <span class="mono">${block.nonce.toLocaleString('en-US')}</span> · ${block.txCount.toLocaleString('en-US')} tx</div>` +
+				reward +
+				fees +
+				`<div><a class="card-link mono" href="https://mempool.space/block/${block.hash}" target="_blank" rel="noopener">view on mempool.space ↗</a></div>`
+			);
+		}
 		const coinbase = block.transactions.find((tx) => tx.coinbase);
 		const reward = coinbase
 			? `<div class="muted">paid <span class="mono">${coinbase.amount}</span> to ${coinbase.toName}</div>`

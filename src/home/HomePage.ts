@@ -39,7 +39,7 @@ const SIMULATIONS: MenuRow = {
 const LIVE: MenuRow[] = [
 	{
 		items: [
-			{ label: 'Bitcoin', badge: 'L1' },
+			{ label: 'Bitcoin', sub: 'mainnet, live', badge: 'L1', route: '/live/bitcoin' },
 			{ label: 'Lightning', sub: 'payment channels', badge: 'L2', connector: true },
 		],
 	},

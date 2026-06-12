@@ -53,6 +53,48 @@ For the interactive lessons that need an attacker (double-spend race,
 tampering with a past block), run the narrated console demo:
 `npm run demo`.
 
+## Routes
+
+| Route | What it shows |
+|---|---|
+| `/` | the catalog (simulations + live networks, keyboard-navigable) |
+| `/simulate/pow` | the proof-of-work simulation described above |
+| `/live/bitcoin` | **real Bitcoin mainnet, live** — see below |
+
+## Live mode (`/live/bitcoin`)
+
+The same scene, fed by real data instead of the simulation engine:
+
+```
+mempool.space ──WS+REST──▶ MempoolSpaceSource ──ChainEvents──▶ Presenter ──▶ SceneView/Hud
+   (wire DTOs)              (zod-validated,        (the same       (live copy)   (shared with
+                             mapped at boundary)    vocabulary)                   the simulation)
+```
+
+- A `DataSource` is anything that speaks the `ChainEvents` vocabulary —
+  the View cannot tell the simulator and the live adapter apart, so a UI
+  change to blocks/links/tooltips applies to both pages automatically.
+- On load, the last ~10 real blocks backfill instantly (mining pool,
+  reward, fees on each), then the page streams: amber ghost cubes ahead
+  of the tip are the **mempool projection** (the templated next blocks,
+  reflowing as fees shift); when a real block confirms (~every 10 min)
+  the nearest ghost solidifies with the real hash's leading zeros
+  highlighted and the pool's reward floating off the block.
+- Live blocks render transaction **density** (one instanced micro-cube
+  grid per block) — thousands of txs, one draw call, no per-tx actors.
+- Resilient by design: exponential-backoff reconnect, staleness
+  watchdog, REST resync after every reconnect, and reorg handling (the
+  orphaned blocks dim gray — probabilistic finality, live).
+- Live data by [mempool.space](https://mempool.space). No API key; one
+  WebSocket; REST responses cached by block hash.
+
+**Adding a live adapter for another chain:** implement `DataSource`
+(`src/core/datasources/DataSource.ts`) — emit a `block:mined` backfill
+then stream, validating wire payloads at the boundary and mapping them
+into `ChainEvents` (see `mempool/mapping.ts` for the pattern); compose a
+presenter that picks page copy, and register a route. Nothing in the
+View needs to change.
+
 ## Architecture
 
 ```

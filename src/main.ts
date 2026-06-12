@@ -10,6 +10,7 @@
  * and a fresh boot is more reliable than a hand-written teardown.
  */
 import './app/style.css';
+import { mountLiveBitcoinApp } from './app/live/liveBitcoinApp';
 import { mountPowApp } from './app/powApp';
 import { applyCssVars } from './app/view/theme';
 import { HomePage } from './home/HomePage';
@@ -30,6 +31,12 @@ function render(path: string): void {
 	if (path === '/simulate/pow') {
 		document.title = 'tschain — PoW simulation';
 		mountPowApp(app!);
+		return;
+	}
+
+	if (path === '/live/bitcoin') {
+		document.title = 'tschain — Bitcoin, live';
+		mountLiveBitcoinApp(app!);
 		return;
 	}
 

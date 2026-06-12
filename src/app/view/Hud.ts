@@ -29,8 +29,9 @@ export class Hud {
 	private readonly wallets: HTMLElement;
 	private readonly ticker: HTMLElement;
 	private readonly identicons = new Map<string, string>();
+	private sourcePill: HTMLElement | null = null;
 
-	constructor(root: HTMLElement) {
+	constructor(root: HTMLElement, options: { hideWallets?: boolean; hideMiners?: boolean } = {}) {
 		// wordmark doubles as the home button — a plain link, so the
 		// browser does the navigation (and the full reload that cleanly
 		// tears down the WebGL app, same as browser-back)
@@ -96,6 +97,7 @@ export class Hud {
 		const walletsPanel = document.createElement('div');
 		walletsPanel.className = 'panel';
 		walletsPanel.innerHTML = `<h2>Wallets</h2><div data-hud="wallets" class="wallets"><em class="muted">spinning up…</em></div>`;
+		if (options.hideWallets) walletsPanel.style.display = 'none';
 		this.rightStack.appendChild(walletsPanel);
 		this.wallets = walletsPanel.querySelector('[data-hud="wallets"]')!;
 
@@ -121,7 +123,32 @@ export class Hud {
 		leftStack.className = 'left-stack';
 		root.appendChild(leftStack);
 		this.narrator = new Narrator(leftStack);
-		this.miners = new MinersPanel(leftStack);
+		this.miners = new MinersPanel(leftStack, { hidden: options.hideMiners });
+	}
+
+	/**
+	 * Live-status pill next to the wordmark: green pulse = streaming,
+	 * amber = degraded/reconnecting (with countdown), red = disconnected.
+	 */
+	setSourcePill(status: string, retryInSec?: number): void {
+		if (!this.sourcePill) {
+			this.sourcePill = document.createElement('span');
+			this.sourcePill.className = 'live-pill';
+			document.querySelector('.wordmark')?.appendChild(this.sourcePill);
+		}
+		this.sourcePill.dataset.state = status;
+		this.sourcePill.textContent =
+			status === 'live'
+				? 'live'
+				: status === 'connecting'
+					? 'connecting…'
+					: status === 'degraded'
+						? retryInSec
+							? `reconnecting in ${retryInSec}s`
+							: 'degraded'
+						: status === 'disconnected'
+							? `disconnected${retryInSec ? ` — retry in ${retryInSec}s` : ''}`
+							: status;
 	}
 
 	setWallets(balances: ReadonlyArray<{ name: string; address: string; balance: number }>): void {
