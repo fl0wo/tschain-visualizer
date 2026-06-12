@@ -31,10 +31,14 @@ export class Hud {
 	private readonly identicons = new Map<string, string>();
 
 	constructor(root: HTMLElement) {
-		// wordmark
-		const wordmark = document.createElement('div');
+		// wordmark doubles as the home button — a plain link, so the
+		// browser does the navigation (and the full reload that cleanly
+		// tears down the WebGL app, same as browser-back)
+		const wordmark = document.createElement('a');
 		wordmark.className = 'wordmark';
-		wordmark.innerHTML = `<span class="status-dot" data-status></span>tschain-visualizer`;
+		wordmark.href = '/';
+		wordmark.title = 'back to the catalog';
+		wordmark.innerHTML = `<span class="wordmark-home mono">⌂</span><span class="status-dot" data-status></span>tschain-visualizer`;
 		root.appendChild(wordmark);
 		this.statusDot = wordmark.querySelector('[data-status]')!;
 
