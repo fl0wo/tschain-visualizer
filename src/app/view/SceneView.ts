@@ -94,8 +94,18 @@ export class SceneView {
 		const halfH = theme.camera.viewHeight / 2;
 		this.camera = new THREE.OrthographicCamera(-halfH * aspect, halfH * aspect, halfH, -halfH, 0.1, 300);
 		const isoDir = theme.camera.isoDirection.clone().normalize();
+		const isoPolar = Math.acos(isoDir.y); // angle from the +y axis
+		const isoAzimuth = Math.atan2(isoDir.x, isoDir.z);
 		const target = new THREE.Vector3(2, theme.layout.cubeSize / 2, 0);
-		this.camera.position.copy(target).addScaledVector(isoDir, theme.camera.distance);
+		// Start at the LOWEST allowed inclination (iso polar + full swing,
+		// i.e. tilted as far from top-down as the constraints permit) —
+		// the user can still peek upward within the swing window.
+		const startDir = new THREE.Vector3().setFromSphericalCoords(
+			1,
+			isoPolar + theme.camera.polarSwing,
+			isoAzimuth,
+		);
+		this.camera.position.copy(target).addScaledVector(startDir, theme.camera.distance);
 		this.camera.lookAt(target);
 
 		this.controls = new OrbitControls(this.camera, this.renderer.domElement);
@@ -103,8 +113,6 @@ export class SceneView {
 		this.controls.target.copy(target);
 		// Constrain to a window around the iso angle: the user can peek,
 		// never lose the isometric reading. Zoom = orthographic zoom.
-		const isoPolar = Math.acos(isoDir.y); // angle from the +y axis
-		const isoAzimuth = Math.atan2(isoDir.x, isoDir.z);
 		this.controls.minPolarAngle = isoPolar - theme.camera.polarSwing;
 		this.controls.maxPolarAngle = isoPolar + theme.camera.polarSwing;
 		this.controls.minAzimuthAngle = isoAzimuth - theme.camera.azimuthSwing;
