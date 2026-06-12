@@ -1,143 +1,185 @@
 import * as THREE from 'three';
-import type { BlockInfo, TxInfo } from '../model/ChainModel';
+import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
+import { LineSegmentsGeometry } from 'three/addons/lines/LineSegmentsGeometry.js';
+import type { LineMaterial } from 'three/addons/lines/LineMaterial.js';
+import type { BlockInfo } from '../model/ChainModel';
+import { TxCubeMesh } from './TxCubeMesh';
+import { makeEdgeMaterial } from './edgeMaterials';
+import { boosted, cssColor, theme } from './theme';
 
 /**
- * One block = one cube; its transactions hover as small spheres above it.
- * The genesis block is visually distinct (gold) because it plays by
- * different rules: agreed upon, not mined.
+ * The block is the core of the edge-lit aesthetic: a near-black body so
+ * the geometry recedes, and a bright wireframe of its edges so the form
+ * reads as a crisp isometric diamond. State lives entirely in the edge
+ * color — white = settled, teal = genesis, blue (breathing) = latest,
+ * red-tinted gray = downstream of a break.
  *
- * Geometry/material reuse: all cubes share geometries and the sphere
- * geometry; only materials that must change per-instance (tamper tint)
- * are cloned. This is what keeps ~20 blocks × N spheres at 60fps.
+ * Geometry and the state materials are module-level singletons shared by
+ * every block; only the label canvas is per-instance.
  */
 
-export const CUBE_SIZE = 2;
-export const BLOCK_SPACING = 4;
+const SIZE = theme.layout.cubeSize;
+const CUBE_GEOMETRY = new THREE.BoxGeometry(SIZE, SIZE, SIZE);
+/** fat-line version of the cube's 12 edges, shared by every block */
+export const CUBE_EDGES = new LineSegmentsGeometry().fromEdgesGeometry(
+	new THREE.EdgesGeometry(CUBE_GEOMETRY),
+);
 
-const CUBE_GEOMETRY = new THREE.BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE);
-const CUBE_EDGES = new THREE.EdgesGeometry(CUBE_GEOMETRY);
-const TX_SPHERE_GEOMETRY = new THREE.SphereGeometry(0.18, 16, 12);
-
-const NORMAL_MATERIAL = new THREE.MeshStandardMaterial({
-	color: 0x3d6bb3,
-	transparent: true,
-	opacity: 0.82,
-	roughness: 0.35,
-	metalness: 0.25,
+const BODY_MATERIAL = new THREE.MeshStandardMaterial({
+	color: theme.colors.blockBody,
+	roughness: 0.85,
+	metalness: 0.1,
+	emissive: theme.colors.blockBody,
+	emissiveIntensity: 0.35,
 });
-const GENESIS_MATERIAL = new THREE.MeshStandardMaterial({
-	color: 0xc9a227,
-	transparent: true,
-	opacity: 0.88,
-	roughness: 0.3,
-	metalness: 0.55,
-});
-const TAMPERED_MATERIAL = new THREE.MeshStandardMaterial({
-	color: 0xaa2222,
-	transparent: true,
-	opacity: 0.85,
-	roughness: 0.4,
-	emissive: 0x550000,
-});
-const EDGE_MATERIAL = new THREE.LineBasicMaterial({ color: 0xbfd4ee });
 
-// Tx sphere materials, shared by status. Spheres never change status
-// after creation (a new validation re-creates blocks' colors via tint),
-// so sharing is safe.
-const TX_MATERIALS = {
-	coinbase: new THREE.MeshStandardMaterial({ color: 0xf5c542, emissive: 0x6e5410, emissiveIntensity: 0.5 }),
-	valid: new THREE.MeshStandardMaterial({ color: 0x3fd9c0, emissive: 0x0e4f45, emissiveIntensity: 0.5 }),
-	invalid: new THREE.MeshStandardMaterial({ color: 0xff4444, emissive: 0x661111, emissiveIntensity: 0.7 }),
-} as const;
+const WIDTH = theme.edgeWidth.block;
+const EDGE_NORMAL = makeEdgeMaterial(boosted(theme.colors.edge, theme.boost.edges), WIDTH);
+const EDGE_GENESIS = makeEdgeMaterial(boosted(theme.colors.teal, theme.boost.edges), WIDTH);
+const EDGE_DIM = makeEdgeMaterial(theme.colors.redDim, WIDTH);
+/**
+ * Single shared "latest block" material: only one block is the tip at a
+ * time, and SceneView breathes its opacity globally — cheaper and
+ * simpler than per-instance clones.
+ */
+export const EDGE_LATEST = makeEdgeMaterial(
+	boosted(theme.colors.blue, theme.boost.edges * 1.6),
+	WIDTH,
+	{ transparent: true },
+);
 
-export function txMaterialFor(tx: TxInfo): THREE.MeshStandardMaterial {
-	if (tx.coinbase) return TX_MATERIALS.coinbase;
-	return tx.signatureValid ? TX_MATERIALS.valid : TX_MATERIALS.invalid;
-}
-
-/** Position of block #index on the chain axis. */
 export function blockPosition(index: number): THREE.Vector3 {
-	return new THREE.Vector3(index * BLOCK_SPACING, CUBE_SIZE / 2, 0);
+	return new THREE.Vector3(index * theme.layout.blockSpacing, SIZE / 2, 0);
 }
 
-/** Canvas-texture sprite for the block index label — cheap and crisp. */
-function makeLabel(text: string): THREE.Sprite {
-	const canvas = document.createElement('canvas');
-	canvas.width = 128;
-	canvas.height = 64;
-	const ctx = canvas.getContext('2d')!;
-	ctx.font = 'bold 40px ui-monospace, monospace';
+/** index + truncated hash label, drawn once on a small canvas. */
+function drawLabel(
+	ctx: CanvasRenderingContext2D,
+	title: string,
+	hash: string,
+	options: { strike?: boolean } = {},
+): void {
+	const { width, height } = ctx.canvas;
+	ctx.clearRect(0, 0, width, height);
 	ctx.textAlign = 'center';
-	ctx.textBaseline = 'middle';
-	ctx.fillStyle = '#dce8f8';
-	ctx.fillText(text, 64, 34);
-	const texture = new THREE.CanvasTexture(canvas);
-	const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true }));
-	sprite.scale.set(1.6, 0.8, 1);
-	return sprite;
+
+	ctx.font = '500 30px "Geist", ui-sans-serif, sans-serif';
+	ctx.fillStyle = cssColor(theme.colors.edge);
+	ctx.fillText(title, width / 2, 38);
+
+	ctx.font = '400 24px "Geist Mono", ui-monospace, monospace';
+	ctx.fillStyle = options.strike ? cssColor(theme.colors.red) : cssColor(theme.colors.textSecondary);
+	ctx.fillText(hash, width / 2, 74);
+	if (options.strike) {
+		const w = ctx.measureText(hash).width;
+		ctx.strokeStyle = cssColor(theme.colors.red);
+		ctx.lineWidth = 3;
+		ctx.beginPath();
+		ctx.moveTo(width / 2 - w / 2, 66);
+		ctx.lineTo(width / 2 + w / 2, 66);
+		ctx.stroke();
+	}
+}
+
+export function shortHash(hash: string): string {
+	return `0x${hash.slice(0, 4)}…${hash.slice(-4)}`;
 }
 
 export class BlockMesh {
-	readonly group: THREE.Group;
-	/** Hover targets for the tooltip raycaster; userData.tx holds TxInfo. */
-	readonly txSpheres: THREE.Mesh[] = [];
+	readonly group = new THREE.Group();
 	readonly index: number;
+	/** raycast target carrying userData.block */
+	readonly body: THREE.Mesh;
+	/** mini cubes for the block's transactions (hover targets) */
+	readonly txCubes: TxCubeMesh[] = [];
 
-	private readonly cube: THREE.Mesh;
-	private pulseTime: number | null = null;
+	private readonly edges: LineSegments2;
+	private readonly labelCtx: CanvasRenderingContext2D;
+	private readonly labelTexture: THREE.CanvasTexture;
+	private readonly info: BlockInfo;
+	private dimmed = false;
+	private latest = false;
 
 	constructor(info: BlockInfo) {
 		this.index = info.index;
-		this.group = new THREE.Group();
+		this.info = info;
 		this.group.position.copy(blockPosition(info.index));
 
-		this.cube = new THREE.Mesh(CUBE_GEOMETRY, info.index === 0 ? GENESIS_MATERIAL : NORMAL_MATERIAL);
-		this.group.add(this.cube);
-		this.group.add(new THREE.LineSegments(CUBE_EDGES, EDGE_MATERIAL));
+		this.body = new THREE.Mesh(CUBE_GEOMETRY, BODY_MATERIAL);
+		this.body.userData.block = info;
+		this.edges = new LineSegments2(CUBE_EDGES, info.index === 0 ? EDGE_GENESIS : EDGE_NORMAL);
+		this.group.add(this.body, this.edges);
 
-		const label = makeLabel(info.index === 0 ? 'genesis' : `#${info.index}`);
-		label.position.y = -(CUBE_SIZE / 2 + 0.7);
+		// Label sprite below the cube: "#N" + truncated hash in Mono.
+		const canvas = document.createElement('canvas');
+		canvas.width = 256;
+		canvas.height = 96;
+		this.labelCtx = canvas.getContext('2d')!;
+		drawLabel(this.labelCtx, info.index === 0 ? 'genesis' : `#${info.index}`, shortHash(info.hash));
+		this.labelTexture = new THREE.CanvasTexture(canvas);
+		const label = new THREE.Sprite(
+			new THREE.SpriteMaterial({ map: this.labelTexture, transparent: true }),
+		);
+		label.scale.set(2.2, 0.82, 1);
+		label.position.y = -(SIZE / 2 + 0.65);
 		this.group.add(label);
 
-		// Transactions hover in a row just above the cube's top face.
+		// The block's transactions ride on top as settled mini cubes.
 		info.transactions.forEach((tx, i) => {
-			const sphere = new THREE.Mesh(TX_SPHERE_GEOMETRY, txMaterialFor(tx));
+			const cube = new TxCubeMesh(tx);
+			cube.setState('mined');
+			if (!tx.coinbase && tx.signatureValid) cube.addSeal();
 			const count = info.transactions.length;
-			sphere.position.set(
-				(i - (count - 1) / 2) * 0.5,
-				CUBE_SIZE / 2 + 0.45,
+			cube.group.position.set(
+				(i - (count - 1) / 2) * (theme.layout.txCubeSize + 0.18),
+				SIZE / 2 + theme.layout.txCubeSize / 2 + 0.12,
 				0,
 			);
-			sphere.userData.tx = tx;
-			this.txSpheres.push(sphere);
-			this.group.add(sphere);
+			this.txCubes.push(cube);
+			this.group.add(cube.group);
 		});
 	}
 
-	/** Tint the cube red once validation finds its hash no longer matches. */
-	setTampered(tampered: boolean): void {
-		this.cube.material = tampered
-			? TAMPERED_MATERIAL
-			: this.index === 0
-				? GENESIS_MATERIAL
-				: NORMAL_MATERIAL;
+	/** The breathing blue tip treatment — exactly one block at a time. */
+	setLatest(latest: boolean): void {
+		this.latest = latest;
+		this.applyEdgeMaterial();
 	}
 
-	/** Brief "I just got mined" pop-in pulse. */
-	celebrate(): void {
-		this.pulseTime = 0;
+	/** Downstream-of-a-break: edges dim to red-tinted gray. */
+	setDimmed(dimmed: boolean): void {
+		this.dimmed = dimmed;
+		this.applyEdgeMaterial();
 	}
 
-	update(dt: number): void {
-		if (this.pulseTime === null) return;
-		this.pulseTime += dt;
-		const t = this.pulseTime;
-		if (t >= 0.6) {
-			this.group.scale.setScalar(1);
-			this.pulseTime = null;
-			return;
-		}
-		// Overshoot then settle: 1 → 1.15 → 1.
-		this.group.scale.setScalar(1 + 0.15 * Math.sin((t / 0.6) * Math.PI));
+	private applyEdgeMaterial(): void {
+		this.edges.material = this.dimmed
+			? EDGE_DIM
+			: this.latest
+				? EDGE_LATEST
+				: this.index === 0
+					? EDGE_GENESIS
+					: EDGE_NORMAL;
+	}
+
+	/** Brief edge-brightness pop, used by the confirmation ripple. */
+	flashEdges(material: LineMaterial, durationSec: number): void {
+		const previous = this.edges.material;
+		this.edges.material = material;
+		setTimeout(() => {
+			// Only restore if nothing else (tamper, latest…) changed it.
+			if (this.edges.material === material) this.edges.material = previous;
+		}, durationSec * 1000);
+	}
+
+	/** TamperAnimation support: stored hash struck through, mismatch typed in. */
+	markHashMismatch(): void {
+		drawLabel(this.labelCtx, `#${this.index}`, shortHash(this.info.hash), { strike: true });
+		this.labelTexture.needsUpdate = true;
+	}
+
+	restoreLabel(): void {
+		drawLabel(this.labelCtx, this.index === 0 ? 'genesis' : `#${this.index}`, shortHash(this.info.hash));
+		this.labelTexture.needsUpdate = true;
 	}
 }

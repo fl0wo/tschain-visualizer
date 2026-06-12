@@ -1,135 +1,138 @@
 import * as THREE from 'three';
 import type { TxInfo } from '../model/ChainModel';
-import { txMaterialFor } from './BlockMesh';
+import { TxCubeMesh } from './TxCubeMesh';
+import { prefersReducedMotion, theme } from './theme';
+import type { Tweens } from './tween';
 
 /**
- * The mempool floats above the chain: each pending transaction is a
- * bobbing sphere in a holding pattern. When a block is mined the spheres
- * fly into the new cube (visually: "the mempool drains into the block");
- * a rejected transaction flashes red and falls off the world instead.
+ * The mempool zone: a small holding grid floating beside the chain tip
+ * where pending transaction cubes wait, gently bobbing. Cubes arrive at
+ * a "staging" spot (where the signing/verification choreography plays),
+ * then settle into a slot; when a block is mined the mined cubes fly
+ * into it with staggered, eased arcs.
  */
 
-const SPHERE_GEOMETRY = new THREE.SphereGeometry(0.24, 16, 12);
-const REJECT_MATERIAL = new THREE.MeshStandardMaterial({
-	color: 0xff3333,
-	emissive: 0xff0000,
-	emissiveIntensity: 1.2,
-	transparent: true,
-});
-
-/** Where pending tx spheres hover, relative to the world origin. */
-const POOL_CENTER = new THREE.Vector3(0, 7, -2.5);
-
-interface PendingSphere {
-	mesh: THREE.Mesh;
+interface PoolEntry {
+	cube: TxCubeMesh;
+	/** local-space resting position once settled */
 	home: THREE.Vector3;
-	phase: number; // desynchronizes the bobbing
-}
-
-interface FlyingSphere {
-	mesh: THREE.Mesh;
-	from: THREE.Vector3;
-	to: THREE.Vector3;
-	t: number;
-}
-
-interface FallingSphere {
-	mesh: THREE.Mesh;
-	velocity: THREE.Vector3;
-	life: number;
+	/** desynchronizes the bobbing */
+	phase: number;
+	/** bobbing only applies once the intro choreography is done */
+	settled: boolean;
 }
 
 export class MempoolView {
 	readonly group = new THREE.Group();
-	private pending = new Map<string, PendingSphere>();
-	private flying: FlyingSphere[] = [];
-	private falling: FallingSphere[] = [];
+	private readonly entries = new Map<string, PoolEntry>();
 	private elapsed = 0;
+	private slotCounter = 0;
+	private anchorX = 0;
 
-	/** Hover targets for the tooltip raycaster. */
-	get spheres(): THREE.Mesh[] {
-		return [...this.pending.values()].map((p) => p.mesh);
+	/** hover targets for the tooltip raycaster */
+	get hoverTargets(): THREE.Mesh[] {
+		return [...this.entries.values()].map((e) => e.cube.body);
 	}
 
-	/** Keep the holding pattern hovering near the end of the chain. */
-	setAnchor(x: number): void {
-		this.group.position.x = x;
+	get size(): number {
+		return this.entries.size;
 	}
 
-	add(tx: TxInfo): void {
-		const mesh = new THREE.Mesh(SPHERE_GEOMETRY, txMaterialFor(tx));
-		mesh.userData.tx = tx;
-		const slot = this.pending.size;
-		const home = POOL_CENTER.clone().add(
-			new THREE.Vector3((slot % 4) * 0.8 - 1.2, Math.floor(slot / 4) * 0.8, 0),
+	/** Keep the holding zone floating beside the chain tip. The group
+	 *  eases toward the new anchor in update() instead of teleporting. */
+	setAnchor(tipX: number): void {
+		this.anchorX = tipX;
+	}
+
+	/** World-space point where new cubes materialize for their intro. */
+	stagingWorldPosition(): THREE.Vector3 {
+		return this.group.localToWorld(
+			theme.layout.mempoolOffset.clone().add(theme.layout.stagingOffset),
 		);
-		mesh.position.copy(home);
-		this.group.add(mesh);
-		this.pending.set(tx.hash, { mesh, home, phase: Math.random() * Math.PI * 2 });
 	}
 
 	/**
-	 * Mined! Send the spheres of the MINED transactions flying into the
-	 * new block — transactions that arrived while mining ran stay in the
-	 * holding pattern for the next block. The target is world space;
-	 * convert to local since the group is offset by setAnchor().
+	 * Register a new pending tx cube at the staging spot. The cube is
+	 * tracked immediately — even mid-choreography — so a block mined at
+	 * the wrong moment can still find and drain it.
 	 */
-	drainInto(worldTarget: THREE.Vector3, minedHashes: Iterable<string>): void {
-		const localTarget = this.group.worldToLocal(worldTarget.clone());
-		for (const hash of minedHashes) {
-			const sphere = this.pending.get(hash);
-			if (!sphere) continue; // coinbase has no pool sphere
-			this.flying.push({ mesh: sphere.mesh, from: sphere.mesh.position.clone(), to: localTarget.clone(), t: 0 });
-			this.pending.delete(hash);
-		}
+	enter(tx: TxInfo, cube: TxCubeMesh): void {
+		const slot = this.slotCounter++;
+		const home = theme.layout.mempoolOffset
+			.clone()
+			.add(new THREE.Vector3((slot % 3) * 0.85 - 0.85, Math.floor(slot % 9 / 3) * 0.85, (Math.floor(slot / 9) % 2) * 0.7));
+		cube.group.position.copy(theme.layout.mempoolOffset).add(theme.layout.stagingOffset);
+		this.group.add(cube.group);
+		this.entries.set(tx.hash, { cube, home, phase: Math.random() * Math.PI * 2, settled: false });
 	}
 
-	/** A rejected tx: brief red flash at the pool, then gravity wins. */
-	showRejection(): void {
-		const mesh = new THREE.Mesh(SPHERE_GEOMETRY, REJECT_MATERIAL.clone());
-		mesh.position.copy(POOL_CENTER).add(new THREE.Vector3(0, -0.6, 0.6));
-		this.group.add(mesh);
-		this.falling.push({
-			mesh,
-			velocity: new THREE.Vector3((Math.random() - 0.5) * 2, 1.5, (Math.random() - 0.5) * 2),
-			life: 0,
+	/** Glide a cube from wherever it is into its resting slot. */
+	async settle(txHash: string, tweens: Tweens): Promise<void> {
+		const entry = this.entries.get(txHash);
+		if (!entry) return; // already drained into a block mid-intro
+		const from = entry.cube.group.position.clone();
+		const handle = tweens.run(0.45, (t) => {
+			entry.cube.group.position.lerpVectors(from, entry.home, t);
 		});
+		entry.cube.activeHandles.push(handle);
+		await handle.finished;
+		entry.settled = true;
+	}
+
+	/**
+	 * MiningAnimation's final beat: the mined cubes fly into the new
+	 * block with eased arcs, staggered so the eye can follow them.
+	 * Cubes still mid-intro are cut short — history won't wait.
+	 */
+	async drainInto(worldTarget: THREE.Vector3, minedHashes: Iterable<string>, tweens: Tweens): Promise<void> {
+		const flights: Promise<void>[] = [];
+		let order = 0;
+		for (const hash of minedHashes) {
+			const entry = this.entries.get(hash);
+			if (!entry) continue; // coinbase never had a pool cube
+			this.entries.delete(hash);
+			entry.cube.cancelIntro();
+
+			const from = entry.cube.group.position.clone();
+			const to = this.group.worldToLocal(worldTarget.clone());
+			const delaySec = (order++ * theme.timing.txFlightStaggerMs) / 1000;
+			flights.push(
+				tweens
+					.run(
+						theme.timing.txFlight,
+						(t) => {
+							entry.cube.group.position.lerpVectors(from, to, t);
+							// the arc: a sine bump on top of the straight path
+							entry.cube.group.position.y += Math.sin(t * Math.PI) * 1.1;
+						},
+						{ delaySec },
+					)
+					.finished.then(() => {
+						this.group.remove(entry.cube.group);
+					}),
+			);
+		}
+		await Promise.all(flights);
+	}
+
+	/** Remove a rejected cube's tracking (its mesh tumbles separately). */
+	discard(cube: TxCubeMesh): void {
+		this.group.remove(cube.group);
 	}
 
 	update(dt: number): void {
-		this.elapsed += dt;
-
-		// Idle bobbing — alive, but clearly "waiting".
-		for (const { mesh, home, phase } of this.pending.values()) {
-			mesh.position.y = home.y + 0.18 * Math.sin(this.elapsed * 2 + phase);
+		if (prefersReducedMotion()) {
+			this.group.position.x = this.anchorX;
+			return;
 		}
-
-		// Fly-into-block: ease-in quadratic with a slight arc.
-		this.flying = this.flying.filter((f) => {
-			f.t += dt / 0.7; // 0.7s flight
-			if (f.t >= 1) {
-				this.group.remove(f.mesh);
-				return false;
-			}
-			const eased = f.t * f.t;
-			f.mesh.position.lerpVectors(f.from, f.to, eased);
-			f.mesh.position.y += Math.sin(f.t * Math.PI) * 0.8; // arc
-			return true;
-		});
-
-		// Rejected: pop up, then fall and fade.
-		this.falling = this.falling.filter((f) => {
-			f.life += dt;
-			f.velocity.y -= 9.8 * dt;
-			f.mesh.position.addScaledVector(f.velocity, dt);
-			const material = f.mesh.material as THREE.MeshStandardMaterial;
-			material.opacity = Math.max(0, 1 - f.life / 1.4);
-			if (f.life >= 1.4) {
-				this.group.remove(f.mesh);
-				material.dispose();
-				return false;
-			}
-			return true;
-		});
+		// exponential ease toward the anchor — frame-rate independent
+		this.group.position.x += (this.anchorX - this.group.position.x) * Math.min(dt * 4, 1);
+		this.elapsed += dt;
+		const omega = (Math.PI * 2) / theme.timing.bobPeriod;
+		for (const entry of this.entries.values()) {
+			if (!entry.settled) continue;
+			entry.cube.group.position.y =
+				entry.home.y + theme.timing.bobAmplitude * Math.sin(this.elapsed * omega + entry.phase);
+		}
 	}
 }

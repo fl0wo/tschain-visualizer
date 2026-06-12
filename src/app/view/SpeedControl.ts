@@ -14,16 +14,18 @@ export class SpeedControl {
 
 	constructor(root: HTMLElement) {
 		const panel = document.createElement('div');
-		panel.className = 'hud-panel speed-control';
+		panel.className = 'panel speed-control';
 		panel.innerHTML = `
 			<h2>Simulation speed</h2>
 			<div class="speed-row">
-				<span>🐢</span>
+				<span class="muted">slow</span>
 				<input type="range" min="-2" max="3" step="0.5" value="0" aria-label="simulation speed" />
-				<span>🐇</span>
+				<span class="muted">fast</span>
 			</div>
 			<div class="speed-value">×1</div>`;
-		root.appendChild(panel);
+		// Prepend: the speed control sits above whatever else shares the
+		// stack (the wallets panel grows downward as users join).
+		root.prepend(panel);
 
 		const slider = panel.querySelector('input')!;
 		const label = panel.querySelector<HTMLElement>('.speed-value')!;
