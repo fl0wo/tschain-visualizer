@@ -2,9 +2,11 @@
 
 [Live Demo](https://tschain.floriansabani.com/simulate/pow)
 
-A 3D visualizer for learning how blockchains actually work — watch
-consensus happen, simulated or **live**. TypeScript + three.js, no
-framework, no backend.
+A 3D visualizer for learning how blockchains actually work — proof of
+work and proof of stake simulated step by step, Layer 2s (Lightning
+channels, an optimistic rollup) running on ticking L1 parents, and real
+Bitcoin mainnet streamed live. TypeScript + three.js, no framework, no
+backend.
 
 <img src="docs/gifpow.gif" alt="proof-of-work simulation in the visualizer" width="1280" height="710" />
 
@@ -24,7 +26,7 @@ framework, no backend.
 ```bash
 pnpm install
 npm run dev     # visualizer at http://localhost:5173
-npm test        # 57 unit tests (core, model, live adapter — all offline)
+npm test        # 82 unit tests (core, consensus, Layer 2, live adapter — all offline)
 npm run demo    # narrated console walkthrough of the core chain
 ```
 
@@ -32,20 +34,37 @@ npm run demo    # narrated console walkthrough of the core chain
 
 ```
 core/        pure domain logic, zero DOM/three imports
-  Transaction · Wallet · Block · Blockchain · Mempool   (the educational chain)
-  events/chainEvents.ts     the ONE event vocabulary both sources speak
+  Transaction · Wallet · Block · Blockchain · Mempool   (the educational chain;
+                            txs carry kind+memo — settlements are labeled and
+                            data rides on-chain; wallets sign messages too)
+  consensus/seededRandom    deterministic, verifiable proposer selection (PoS)
+  layers/                   Layer 2: ParentL1 facade + typed L2 vocabularies
+    lightning/              StateChannelNetwork — dual-signed states, HTLC
+                            routing, the dispute/watchtower game
+    rollup/                 OptimisticRollup — journaled state, batches whose
+                            on-chain data re-executes (reExecuteBatch), fraud
+                            proofs, the asymmetric bridge
+  events/chainEvents.ts     the ONE event vocabulary every source speaks
   datasources/              DataSource seam + mempool.space adapter
                             (zod-validated wire → domain mapping, reconnect/resync/reorg)
 app/
-  model/ChainModel          wraps the core, emits typed events
-  view/                     three.js scene + HUD (edge-lit cubes, callouts, narrator)
-  controller/, live/        per-page wiring: simulation Controller / live Presenter
+  model/                    ChainModel (PoW) · PosChainModel (slots, attestations,
+                            faucet) — both adoptable by L2s via submitSigned
+  l2/                       parent adapters + every L2 tunable (config.ts)
+  view/                     the shared scene (edge-lit cubes, callouts, narrator)
+                            + per-page components: ValidatorsPanel, PoolsPanel,
+                            GraphScene (the Lightning graph), RollupLaneView
+  controller/, live/, …     per-page wiring: simulations (one BaseSimulation
+                            playback skeleton), presenters
 ```
 
 The View only ever consumes events — it cannot tell the simulator from
-the live adapter, so every UI improvement applies to both pages. Adding
-a live adapter for another chain = implement `DataSource`, map wire
-payloads into `ChainEvents` at the boundary, register a route.
+the live adapter, so every UI improvement applies everywhere. The same
+seam works vertically: a Layer 2 talks to its parent only through the
+`ParentL1` facade (inject a settlement, count confirmations), so the
+Lightning page runs on the PoW model and the Base page on the PoS model
+without either knowing. Adding a live adapter = implement `DataSource`;
+adding an L2 = implement `Layer2System` against `ParentL1`.
 
 ## Layer 2 — the two mental models
 
@@ -68,9 +87,14 @@ payloads into `ChainEvents` at the boundary, register a route.
 Education over spectacle, but never fake: signatures are real Ed25519,
 the simulated proof-of-work is a real (low-difficulty, deliberately
 paced — your battery is safe) SHA-256 search, live data is real mainnet.
-Where reality can't be shown, the UI says so — e.g. nobody can list who
-is "currently mining", so the live pools panel shows each pool's recent
-block share, which *is* its odds of winning the next block.
+PoS proposer selection is recomputable from the seed shown in the HUD;
+Lightning channel states carry two genuine signatures you could verify
+yourself; rollup batches post their data on-chain and the fraud proof
+is literally a re-execution of it. Where reality can't be shown, the UI
+says so — e.g. nobody can list who is "currently mining", so the live
+pools panel shows each pool's recent block share, which *is* its odds
+of winning the next block. Each page's simplifications (revocation
+keys, merkle roots, bisection games…) are named in comments and copy.
 
 ## Credits
 
