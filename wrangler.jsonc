@@ -1,0 +1,17 @@
+{
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "tschain-visualizer",
+	"compatibility_date": "2026-06-01",
+
+	// Assets-only Worker: no script, Cloudflare serves dist/ from the edge.
+	// SPA fallback makes deep links (/simulate/pow, /live/bitcoin) resolve
+	// to index.html so the client-side router can take over.
+	"assets": {
+		"directory": "./dist",
+		"not_found_handling": "single-page-application"
+	},
+
+	// Custom domain on the floriansabani.com zone — Cloudflare provisions
+	// the DNS record and certificate automatically on deploy.
+	"routes": [{ "pattern": "tschain.floriansabani.com", "custom_domain": true }]
+}

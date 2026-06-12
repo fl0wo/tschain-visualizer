@@ -9,7 +9,8 @@
 		"preview": "vite preview",
 		"test": "vitest run",
 		"test:watch": "vitest",
-		"demo": "tsx src/demo.ts"
+		"demo": "tsx src/demo.ts",
+		"deploy": "npm run build && wrangler deploy"
 	},
 	"dependencies": {
 		"@noble/curves": "^1.8.1",
@@ -23,6 +24,7 @@
 		"tsx": "^4.19.3",
 		"typescript": "^5.5.2",
 		"vite": "^7.3.0",
-		"vitest": "~3.2.0"
+		"vitest": "~3.2.0",
+		"wrangler": "^4.100.0"
 	}
 }
