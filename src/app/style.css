@@ -303,6 +303,9 @@ canvas {
 	pointer-events: none;
 }
 
+/* The anchor dot and leader line are NOT here: they render inside the
+   3D scene (LeaderLine3D) so the hovered object can occlude them. The
+   DOM half is just the card dot + the card. */
 .callout-dot {
 	position: absolute;
 	left: 0;
@@ -312,18 +315,6 @@ canvas {
 	border-radius: 50%;
 	background: #ffffff;
 	transform: translate(-50%, -50%);
-}
-
-/* the leader: a 1px bar rotated about the anchor, spanning the full
-   dot-to-dot distance so it connects both dots seamlessly */
-.callout-line {
-	position: absolute;
-	left: 0;
-	top: 0;
-	width: 1px;
-	height: var(--callout-lift);
-	background: #ffffff;
-	transform-origin: 0 0;
 }
 
 .callout-card {
@@ -348,10 +339,6 @@ canvas {
 	top: calc(-1 * var(--callout-run-y));
 }
 
-.callout--tr .callout-line {
-	transform: rotate(calc(180deg + var(--callout-angle)));
-}
-
 .callout--tr .callout-card {
 	left: calc(var(--callout-run-x) + 6px);
 	top: calc(-1 * var(--callout-run-y) - 6px);
@@ -362,10 +349,6 @@ canvas {
 .callout--bl .callout-dot-card {
 	left: calc(-1 * var(--callout-run-x));
 	top: var(--callout-run-y);
-}
-
-.callout--bl .callout-line {
-	transform: rotate(var(--callout-angle));
 }
 
 .callout--bl .callout-card {

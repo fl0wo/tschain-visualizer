@@ -22,6 +22,60 @@ import { prefersReducedMotion, theme } from './theme';
 import { Tweens } from './tween';
 
 /**
+ * The in-scene half of a callout: the anchor dot and the leader line
+ * live in the 3D world (depth-tested), so the hovered cube occludes
+ * them — the line visibly starts BEHIND the object instead of being
+ * painted over it like a DOM overlay must. The line lies in the screen
+ * plane through the anchor and uses the same pixel offsets as the DOM
+ * card, so the two halves always meet at the card dot.
+ */
+const LEADER_DOT_GEOMETRY = new THREE.SphereGeometry(0.5, 12, 8);
+
+class LeaderLine3D {
+	private readonly line: THREE.Line;
+	private readonly dot: THREE.Mesh;
+	private readonly positions = new Float32Array(6);
+
+	constructor(scene: THREE.Scene) {
+		const geometry = new THREE.BufferGeometry();
+		geometry.setAttribute('position', new THREE.BufferAttribute(this.positions, 3));
+		this.line = new THREE.Line(geometry, new THREE.LineBasicMaterial({ color: 0xffffff }));
+		this.dot = new THREE.Mesh(LEADER_DOT_GEOMETRY, new THREE.MeshBasicMaterial({ color: 0xffffff }));
+		this.line.frustumCulled = false; // endpoints move every frame
+		this.line.visible = false;
+		this.dot.visible = false;
+		scene.add(this.line, this.dot);
+	}
+
+	update(anchor: THREE.Vector3, dir: 'tr' | 'bl', camera: THREE.OrthographicCamera): void {
+		// px → world: the ortho frustum spans viewHeight/zoom world units
+		// over the viewport height
+		const worldPerPx = theme.camera.viewHeight / camera.zoom / window.innerHeight;
+		const rad = (theme.callout.angleDeg * Math.PI) / 180;
+		const dxPx = theme.callout.liftPx * Math.sin(rad) * (dir === 'tr' ? 1 : -1);
+		const dyPx = theme.callout.liftPx * Math.cos(rad) * (dir === 'tr' ? 1 : -1); // screen-up
+		const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
+		const up = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1);
+		const end = anchor
+			.clone()
+			.addScaledVector(right, dxPx * worldPerPx)
+			.addScaledVector(up, dyPx * worldPerPx);
+
+		this.positions.set([anchor.x, anchor.y, anchor.z, end.x, end.y, end.z]);
+		(this.line.geometry.getAttribute('position') as THREE.BufferAttribute).needsUpdate = true;
+		this.dot.position.copy(anchor);
+		this.dot.scale.setScalar(theme.callout.dotPx * worldPerPx);
+		this.line.visible = true;
+		this.dot.visible = true;
+	}
+
+	hide(): void {
+		this.line.visible = false;
+		this.dot.visible = false;
+	}
+}
+
+/**
  * # SceneView — the V in MVC (3D half)
  *
  * Owns the three.js world: an orthographic isometric camera (cubes read
@@ -69,10 +123,12 @@ export class SceneView {
 	private brokenLinks = new Set<number>();
 	private mismatchedBlocks = new Set<number>();
 
-	// DOM overlays — both dialogs are "callouts": the card floats above
-	// the object, tied to it by a dot · leader line · dot.
+	// Callout dialogs: anchor dot + leader live IN the scene (LeaderLine3D,
+	// occluded by geometry); the card + its dot are DOM overlays.
 	private readonly hover: { root: HTMLDivElement; card: HTMLDivElement };
 	private readonly pinned: { root: HTMLDivElement; card: HTMLDivElement };
+	private readonly hoverLeader: LeaderLine3D;
+	private readonly pinnedLeader: LeaderLine3D;
 	private hoverKey: string | null = null;
 	private pinnedTarget: THREE.Object3D | null = null;
 	private pinnedLift = 0;
@@ -171,6 +227,8 @@ export class SceneView {
 
 		this.hover = SceneView.buildCallout('');
 		this.pinned = SceneView.buildCallout('pinned');
+		this.hoverLeader = new LeaderLine3D(this.scene);
+		this.pinnedLeader = new LeaderLine3D(this.scene);
 		container.append(this.hover.root, this.pinned.root);
 		this.pinned.root.addEventListener('click', (e) => {
 			if ((e.target as HTMLElement).dataset.close !== undefined) this.closePinned();
@@ -419,16 +477,15 @@ export class SceneView {
 
 	// ── pointer interaction ────────────────────────────────────────────
 
-	/** dot · line · dot · card — built once per dialog, repositioned per frame */
+	/** The DOM half of a callout: card dot + card. (The anchor dot and
+	 *  the leader line are 3D — see LeaderLine3D — so geometry can
+	 *  occlude them.) Built once per dialog, repositioned per frame. */
 	private static buildCallout(extraClass: string): { root: HTMLDivElement; card: HTMLDivElement } {
 		const root = document.createElement('div');
 		root.className = `callout ${extraClass}`;
 		root.style.display = 'none';
 		root.innerHTML =
-			`<span class="callout-dot callout-dot-anchor"></span>` +
-			`<span class="callout-line"></span>` +
-			`<span class="callout-dot callout-dot-card"></span>` +
-			`<div class="callout-card"></div>`;
+			`<span class="callout-dot callout-dot-card"></span>` + `<div class="callout-card"></div>`;
 		return { root, card: root.querySelector('.callout-card')! };
 	}
 
@@ -460,11 +517,16 @@ export class SceneView {
 			: { lift: -theme.layout.cubeSize / 2, prefer: 'bl' };
 	}
 
-	/** project an object (plus a world-Y lift) to CSS pixel coordinates */
-	private projectToScreen(object: THREE.Object3D, worldLiftY: number): { x: number; y: number } {
-		object.getWorldPosition(this.projVec);
-		this.projVec.y += worldLiftY;
-		this.projVec.project(this.camera);
+	/** the callout's world-space anchor point (object center + lift) */
+	private static anchorWorld(object: THREE.Object3D, worldLiftY: number): THREE.Vector3 {
+		const anchor = object.getWorldPosition(new THREE.Vector3());
+		anchor.y += worldLiftY;
+		return anchor;
+	}
+
+	/** project a world point to CSS pixel coordinates */
+	private projectToScreen(point: THREE.Vector3): { x: number; y: number } {
+		this.projVec.copy(point).project(this.camera);
 		return {
 			x: ((this.projVec.x + 1) / 2) * window.innerWidth,
 			y: ((1 - this.projVec.y) / 2) * window.innerHeight,
@@ -484,7 +546,7 @@ export class SceneView {
 		x: number,
 		y: number,
 		prefer: 'tr' | 'bl',
-	): void {
+	): 'tr' | 'bl' {
 		// x/y components of the inclined leader (angleDeg away from vertical)
 		const rad = (theme.callout.angleDeg * Math.PI) / 180;
 		const runX = theme.callout.liftPx * Math.sin(rad);
@@ -513,6 +575,7 @@ export class SceneView {
 			shift = Math.max(0, m - cardLeft);
 		}
 		callout.card.style.marginLeft = `${shift}px`;
+		return dir;
 	}
 
 	/** hover dialog, frame-synced: re-picked and re-anchored every tick
@@ -521,6 +584,7 @@ export class SceneView {
 		const picked = this.pick();
 		if (!picked) {
 			this.hover.root.style.display = 'none';
+			this.hoverLeader.hide();
 			this.hoverKey = null;
 			return;
 		}
@@ -533,8 +597,10 @@ export class SceneView {
 		}
 		this.hover.root.style.display = 'block';
 		const { lift, prefer } = SceneView.calloutFor(picked);
-		const anchor = this.projectToScreen(picked.object, lift);
-		this.positionCallout(this.hover, anchor.x, anchor.y, prefer);
+		const anchorWorld = SceneView.anchorWorld(picked.object, lift);
+		const screen = this.projectToScreen(anchorWorld);
+		const dir = this.positionCallout(this.hover, screen.x, screen.y, prefer);
+		this.hoverLeader.update(anchorWorld, dir, this.camera);
 	}
 
 	private updatePinnedCallout(): void {
@@ -546,12 +612,15 @@ export class SceneView {
 			this.closePinned();
 			return;
 		}
-		const anchor = this.projectToScreen(this.pinnedTarget, this.pinnedLift);
-		this.positionCallout(this.pinned, anchor.x, anchor.y, this.pinnedPrefer);
+		const anchorWorld = SceneView.anchorWorld(this.pinnedTarget, this.pinnedLift);
+		const screen = this.projectToScreen(anchorWorld);
+		const dir = this.positionCallout(this.pinned, screen.x, screen.y, this.pinnedPrefer);
+		this.pinnedLeader.update(anchorWorld, dir, this.camera);
 	}
 
 	private closePinned(): void {
 		this.pinned.root.style.display = 'none';
+		this.pinnedLeader.hide();
 		this.pinnedTarget = null;
 	}
 
