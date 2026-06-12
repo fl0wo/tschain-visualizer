@@ -102,17 +102,62 @@ canvas {
 	}
 }
 
-/* ── right stack: speed + wallets ──────────────────────────────────── */
+/* ── right stack: collapse toggle + (speed, wallets) ───────────────── */
 
 .right-stack {
 	position: fixed;
 	top: 12px;
 	right: 12px;
 	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+	z-index: 5;
+}
+
+.right-stack-panels {
+	display: flex;
 	flex-direction: column;
 	gap: 10px;
 	width: 260px;
-	z-index: 5;
+	animation: panels-in var(--hover-ms) ease;
+}
+
+.right-stack-panels.collapsed {
+	display: none;
+}
+
+/* the rounded-square »/« toggle on the section's left edge */
+.stack-toggle {
+	flex-shrink: 0;
+	width: 28px;
+	height: 28px;
+	padding: 0;
+	border-radius: 6px;
+	background: rgba(10, 10, 10, 0.7);
+	backdrop-filter: blur(12px);
+	border: 1px solid var(--border);
+	color: var(--text-secondary);
+	font: inherit;
+	font-size: 13px;
+	line-height: 1;
+	cursor: pointer;
+	transition: border-color var(--hover-ms) ease, color var(--hover-ms) ease;
+}
+
+.stack-toggle:hover {
+	border-color: var(--text-secondary);
+	color: var(--text);
+}
+
+@keyframes panels-in {
+	from {
+		opacity: 0;
+		transform: translateX(8px);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
 }
 
 .wallet-row {
@@ -387,6 +432,7 @@ canvas {
 	.ticker-entry,
 	.odometer-tick,
 	.callout-card,
+	.right-stack-panels,
 	.status-dot[data-state='invalid'] {
 		animation: none;
 	}

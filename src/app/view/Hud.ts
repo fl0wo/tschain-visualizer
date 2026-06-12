@@ -28,10 +28,28 @@ export class Hud {
 		root.appendChild(wordmark);
 		this.statusDot = wordmark.querySelector('[data-status]')!;
 
-		// right stack: speed control mounts above, wallets below
+		// right stack: a collapse toggle on the left edge, then the panel
+		// column (speed control mounts above, wallets below). Collapsing
+		// hides the column; the flex row then shrinks so the lone toggle
+		// hugs the corner, showing « to bring the panels back.
+		const stackWrap = document.createElement('div');
+		stackWrap.className = 'right-stack';
+		const toggle = document.createElement('button');
+		toggle.className = 'stack-toggle';
+		toggle.textContent = '»';
+		toggle.setAttribute('aria-label', 'collapse panels');
+		toggle.setAttribute('aria-expanded', 'true');
 		this.rightStack = document.createElement('div');
-		this.rightStack.className = 'right-stack';
-		root.appendChild(this.rightStack);
+		this.rightStack.className = 'right-stack-panels';
+		stackWrap.append(toggle, this.rightStack);
+		root.appendChild(stackWrap);
+
+		toggle.addEventListener('click', () => {
+			const collapsed = this.rightStack.classList.toggle('collapsed');
+			toggle.textContent = collapsed ? '«' : '»';
+			toggle.setAttribute('aria-expanded', String(!collapsed));
+			toggle.setAttribute('aria-label', collapsed ? 'expand panels' : 'collapse panels');
+		});
 
 		const walletsPanel = document.createElement('div');
 		walletsPanel.className = 'panel';
