@@ -2,7 +2,7 @@ import { TypedEventEmitter } from '../../events';
 import type { ChainEvents, SourceStatus } from '../../events/chainEvents';
 import type { Hex } from '../../types';
 import type { DataSource } from '../DataSource';
-import { blockInfoFromDto, projectionFromDtos, statsFrom } from './mapping';
+import { blockInfoFromDto, projectionFromDtos, statsFrom, streamedFromTuples } from './mapping';
 import { MempoolRestClient } from './restClient';
 import { wsMessageSchema, type FeesDto, type MempoolBlockDto, type MempoolInfoDto } from './schemas';
 
@@ -133,6 +133,9 @@ export class MempoolSpaceSource implements DataSource {
 
 		ws.onopen = () => {
 			ws.send(JSON.stringify({ action: 'want', data: ['blocks', 'mempool-blocks', 'stats'] }));
+			// stream the transactions of the PROJECTED next block (index 0):
+			// full list on subscribe, then added/removed deltas
+			ws.send(JSON.stringify({ 'track-mempool-block': 0 }));
 			this.attempt = 0;
 			this.lastMessageAt = Date.now();
 			this.setStatus('live');
@@ -209,6 +212,12 @@ export class MempoolSpaceSource implements DataSource {
 			this.lastMempoolInfo = msg.mempoolInfo ?? this.lastMempoolInfo;
 			this.lastFees = msg.fees ?? this.lastFees;
 			this.events.emit('stats:updated', statsFrom(this.lastMempoolInfo, this.lastFees));
+		}
+		// Only DELTAS become tx:streamed events: the initial full list is
+		// thousands of standing transactions, not news.
+		const added = msg['projected-block-transactions']?.delta?.added;
+		if (added && added.length > 0) {
+			this.events.emit('tx:streamed', { txs: streamedFromTuples(added) });
 		}
 	}
 

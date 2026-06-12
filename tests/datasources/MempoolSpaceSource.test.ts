@@ -8,6 +8,7 @@ import type { BlockInfo, ProjectedBlock } from '../../src/core/events/chainEvent
 import restBlocksFixture from './fixtures/rest-blocks.json';
 import wsBlockFixture from './fixtures/ws-block.json';
 import wsMempoolBlocksFixture from './fixtures/ws-mempool-blocks.json';
+import wsProjectedDeltaFixture from './fixtures/ws-projected-delta.json';
 import wsStatsFixture from './fixtures/ws-stats.json';
 
 /**
@@ -129,6 +130,34 @@ describe('MempoolSpaceSource', () => {
 		sockets[0]!.message(wsStatsFixture);
 		expect(stats.mempoolTxCount).toBe(10532);
 		expect(stats.fees?.fastest).toBe(2);
+	});
+
+	it('streams projected-block tx DELTAS as tx:streamed (full lists stay silent)', async () => {
+		const { source, sockets } = makeSource([restBlocksFixture]);
+		const batches: Array<readonly { txid: string; valueBtc: number; feeRate?: number }[]> = [];
+		source.events.on('tx:streamed', (p) => batches.push(p.txs));
+		await source.start();
+		sockets[0]!.open();
+
+		// the subscription was requested alongside `want`
+		expect(sockets[0]!.sent.some((s) => s.includes('track-mempool-block'))).toBe(true);
+
+		// initial full list = thousands of standing txs, not news → silent
+		sockets[0]!.message({
+			'projected-block-transactions': {
+				index: 0,
+				blockTransactions: [['aa'.repeat(32), 100, 200, 5_000_000, 1.5]],
+			},
+		});
+		expect(batches).toHaveLength(0);
+
+		// a delta IS news: tuple [txid, fee, vsize, value(sats), rate, …]
+		sockets[0]!.message(wsProjectedDeltaFixture);
+		expect(batches).toHaveLength(1);
+		expect(batches[0]).toHaveLength(2);
+		expect(batches[0]![0]!.valueBtc).toBeCloseTo(0.0035186, 7);
+		expect(batches[0]![0]!.feeRate).toBeCloseTo(3.91, 2);
+		expect(batches[0]![1]!.valueBtc).toBeCloseTo(0.09391266, 8);
 	});
 
 	it('reconnects with backoff, resubscribes, and resyncs missed blocks', async () => {

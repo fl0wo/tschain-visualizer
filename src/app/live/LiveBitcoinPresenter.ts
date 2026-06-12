@@ -34,6 +34,10 @@ export class LiveBitcoinPresenter {
 			this.view.setProjection(blocks);
 		});
 
+		events.on('tx:streamed', ({ txs }) => {
+			this.view.popStreamedTxs(txs);
+		});
+
 		events.on('stats:updated', (update) => this.stats.update(update));
 
 		events.on('source:status', ({ status, retryInSec }) => {

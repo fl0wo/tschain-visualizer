@@ -1,0 +1,16 @@
+{
+	"projected-block-transactions": {
+		"index": 0,
+		"sequence": 13024,
+		"delta": {
+			"added": [
+				["491230732b57ce0d0d050b020d5b022dc69956fbbbc96da4e2a9f0d3e94e212f", 813, 208, 351860, 3.91, 1099511631881, 1781266927],
+				["fa9d95c33ace1d189f8ea0aea7c4309c83ebd88eb647c168ee2faf03d7ef89bc", 446, 171.25, 9391266, 2.6, 1099511631878, 1781266927]
+			],
+			"removed": [
+				"9598bacc10c4f7b2a9551e6192907c454f25d803cd1f84a756ac21237347ac9d"
+			],
+			"changed": []
+		}
+	}
+}

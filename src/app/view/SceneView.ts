@@ -406,6 +406,11 @@ export class SceneView {
 		this.projection.consumeNearest();
 	}
 
+	/** Live txs entering the projected next block — pop their amounts. */
+	popStreamedTxs(txs: readonly import('../../core/events/chainEvents').StreamedTx[]): void {
+		this.projection.popTransactions(txs, this.tweens);
+	}
+
 	/** Reorg: the listed blocks were orphaned by the network — dim them.
 	 *  (The replacement branch appends after; the dimmed cubes stay as
 	 *  the visible scar — exactly the lesson a reorg teaches.) */

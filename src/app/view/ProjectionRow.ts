@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
-import type { ProjectedBlock } from '../../core/events/chainEvents';
+import type { ProjectedBlock, StreamedTx } from '../../core/events/chainEvents';
 import { CUBE_EDGES, blockPosition } from './BlockMesh';
 import { TextSprite } from './animations/TextSprite';
 import { makeEdgeMaterial } from './edgeMaterials';
-import { boosted, theme } from './theme';
+import { boosted, cssColor, prefersReducedMotion, theme } from './theme';
 import type { Tweens } from './tween';
 
 /**
@@ -40,6 +40,21 @@ interface Ghost {
 	label: TextSprite;
 }
 
+/** micro-cube for the per-tx arrival pops (geometry shared; material
+ *  cloned per pop so each can fade independently) */
+const POP_GEOMETRY = new THREE.BoxGeometry(0.26, 0.26, 0.26);
+const POP_BASE_MATERIAL = new THREE.MeshBasicMaterial({
+	color: boosted(theme.colors.pending, theme.boost.edges),
+	transparent: true,
+});
+
+/** 0.042 → "0.042", 1.5 → "1.50", 0.0000084 → "0.000008" */
+function formatBtc(value: number): string {
+	if (value >= 1) return value.toFixed(2);
+	if (value >= 0.001) return value.toFixed(4);
+	return value.toFixed(6);
+}
+
 export class ProjectionRow {
 	readonly group = new THREE.Group();
 	private ghosts: Ghost[] = [];
@@ -73,6 +88,65 @@ export class ProjectionRow {
 	/** A real block confirmed: the nearest ghost is consumed by it. */
 	consumeNearest(): void {
 		if (this.ghosts.length > 0) this.removeAt(0);
+	}
+
+	private activePops = 0;
+
+	/**
+	 * Live transactions entering the projected next block: each one pops
+	 * a small cube around ghost 0 with its "+X BTC" amount rising and
+	 * fading out — the heartbeat of the live page between blocks.
+	 *
+	 * Ornamental, so it degrades honestly: bursts beyond the concurrent
+	 * cap are dropped (busy moments already read as busy), and reduced
+	 * motion skips the pops entirely.
+	 */
+	popTransactions(txs: readonly StreamedTx[], tweens: Tweens): void {
+		if (prefersReducedMotion()) return;
+		const ghost = this.ghosts[0];
+		if (!ghost) return;
+
+		for (const tx of txs) {
+			if (this.activePops >= 12) return;
+			this.activePops++;
+
+			const material = POP_BASE_MATERIAL.clone();
+			const cube = new THREE.Mesh(POP_GEOMETRY, material);
+			const base = ghost.group.position
+				.clone()
+				.add(
+					new THREE.Vector3(
+						(Math.random() - 0.5) * SIZE * 1.1,
+						SIZE / 2 + 0.25 + Math.random() * 0.5,
+						(Math.random() - 0.5) * SIZE * 1.1,
+					),
+				);
+			cube.position.copy(base);
+
+			const label = new TextSprite(1.7);
+			label.set([`+${formatBtc(tx.valueBtc)} BTC`], { color: cssColor(theme.colors.valid) });
+			label.sprite.position.copy(base).add(new THREE.Vector3(0, 0.34, 0));
+			this.group.add(cube, label.sprite);
+
+			void tweens
+				.run(1.4, (t) => {
+					// pop in fast, drift up, fade out late
+					cube.scale.setScalar(Math.min(1, t * 5));
+					const rise = t * 0.9;
+					cube.position.y = base.y + rise;
+					label.sprite.position.y = base.y + 0.34 + rise;
+					const fade = Math.max(0, (t - 0.55) / 0.45);
+					material.opacity = 1 - fade;
+					label.opacity = 1 - fade;
+					cube.rotation.y = t * 1.8;
+				})
+				.finished.then(() => {
+					this.group.remove(cube, label.sprite);
+					material.dispose();
+					label.dispose();
+					this.activePops--;
+				});
+		}
 	}
 
 	private addGhost(): void {

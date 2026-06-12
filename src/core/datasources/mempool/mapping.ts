@@ -1,5 +1,11 @@
-import type { BlockInfo, ProjectedBlock, StatsUpdate } from '../../events/chainEvents';
-import type { FeesDto, MempoolBlockDto, MempoolInfoDto, ProjectedBlockDto } from './schemas';
+import type { BlockInfo, ProjectedBlock, StatsUpdate, StreamedTx } from '../../events/chainEvents';
+import type {
+	FeesDto,
+	MempoolBlockDto,
+	MempoolInfoDto,
+	ProjectedBlockDto,
+	StrippedTxTuple,
+} from './schemas';
 
 /**
  * Provider DTO → domain mapping. This file is the ONLY place that knows
@@ -42,6 +48,15 @@ export function projectionFromDtos(dtos: readonly ProjectedBlockDto[]): Projecte
 		medianFee: p.medianFee,
 		feeRange: p.feeRange,
 		weight: p.blockVSize,
+	}));
+}
+
+/** tuple positions: [txid, fee, vsize, value(sats), rate(sat/vB), …] */
+export function streamedFromTuples(tuples: readonly StrippedTxTuple[]): StreamedTx[] {
+	return tuples.map((t) => ({
+		txid: t[0],
+		valueBtc: t[3] / SATS_PER_BTC,
+		feeRate: typeof t[4] === 'number' ? t[4] : undefined,
 	}));
 }
 

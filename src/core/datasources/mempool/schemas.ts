@@ -72,6 +72,31 @@ export const feesSchema = z
 	})
 	.loose();
 
+/**
+ * A transaction of a PROJECTED block arrives as a positional tuple:
+ * [txid, fee, vsize, value(sats), rate(sat/vB), flags, time, …] —
+ * recorded from the live `track-mempool-block` stream. We type the
+ * positions we consume and let the rest pass.
+ */
+export const strippedTxTupleSchema = z
+	.tuple([z.string(), z.number(), z.number(), z.number()])
+	.rest(z.unknown());
+
+/** `track-mempool-block` family: full list on subscribe, deltas after */
+export const projectedBlockTxsSchema = z
+	.object({
+		index: z.number().optional(),
+		blockTransactions: z.array(strippedTxTupleSchema).optional(),
+		delta: z
+			.object({
+				added: z.array(strippedTxTupleSchema).optional(),
+				removed: z.array(z.string()).optional(),
+			})
+			.loose()
+			.optional(),
+	})
+	.loose();
+
 /** a WS frame may carry any subset of the families we subscribed to */
 export const wsMessageSchema = z
 	.object({
@@ -80,11 +105,13 @@ export const wsMessageSchema = z
 		'mempool-blocks': z.array(projectedBlockSchema).optional(),
 		mempoolInfo: mempoolInfoSchema.optional(),
 		fees: feesSchema.optional(),
+		'projected-block-transactions': projectedBlockTxsSchema.optional(),
 	})
 	.loose();
 
 export type MempoolBlockDto = z.infer<typeof blockSchema>;
 export type ProjectedBlockDto = z.infer<typeof projectedBlockSchema>;
+export type StrippedTxTuple = z.infer<typeof strippedTxTupleSchema>;
 export type MempoolInfoDto = z.infer<typeof mempoolInfoSchema>;
 export type FeesDto = z.infer<typeof feesSchema>;
 export type WsMessage = z.infer<typeof wsMessageSchema>;

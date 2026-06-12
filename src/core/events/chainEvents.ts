@@ -89,6 +89,15 @@ export interface StatsUpdate {
 	};
 }
 
+/** One live transaction entering the projected next block. */
+export interface StreamedTx {
+	readonly txid: string;
+	/** total output value, in BTC */
+	readonly valueBtc: number;
+	/** fee rate in sat/vB, when known */
+	readonly feeRate?: number;
+}
+
 export type SourceStatus = 'idle' | 'connecting' | 'live' | 'degraded' | 'disconnected';
 
 /** Every announcement a chain data source can make. Name → payload. */
@@ -110,6 +119,8 @@ export interface ChainEvents {
 
 	// ── live-only, additive ──
 	'mempool:projection': { blocks: readonly ProjectedBlock[] };
+	/** transactions just streamed INTO the projected next block */
+	'tx:streamed': { txs: readonly StreamedTx[] };
 	'stats:updated': StatsUpdate;
 	'chain:reorg': { orphanedHashes: readonly Hex[]; newTipHeight: number };
 	'source:status': { kind: 'simulated' | 'live'; status: SourceStatus; retryInSec?: number };
