@@ -59,13 +59,15 @@ export class Mempool {
 		// (3) Funds check — the heart of double-spend prevention.
 		// On-chain balance minus what this sender has ALREADY queued in
 		// the pool: pending spends reserve funds even before mining.
+		// The fee counts too: the sender pays amount + fee.
 		const pendingSpend = this.pending
 			.filter((p) => p.from === tx.from)
-			.reduce((sum, p) => sum + p.amount, 0);
+			.reduce((sum, p) => sum + p.amount + p.fee, 0);
 		const available = this.chain.getBalance(tx.from) - pendingSpend;
-		if (tx.amount > available) {
+		const cost = tx.amount + tx.fee;
+		if (cost > available) {
 			throw new Error(
-				`Rejected: insufficient balance — needs ${tx.amount}, ` +
+				`Rejected: insufficient balance — needs ${tx.amount} + ${tx.fee} fee, ` +
 					`but only ${available} available (${pendingSpend} already pending)`,
 			);
 		}
@@ -88,24 +90,26 @@ export class Mempool {
 	/**
 	 * Turns the pending pool into a mined block:
 	 * take the queued transactions, append one coinbase paying the miner
-	 * (this is where new coins come from — and why miners mine), do the
-	 * proof-of-work, append to the chain, and clear what was mined.
+	 * the block reward PLUS every fee in the batch (new coins + tips —
+	 * the twin incentives that make mining worth the electricity), do
+	 * the proof-of-work, append to the chain, and clear what was mined.
 	 */
 	async minePendingTransactions(
 		minerAddress: Address,
 		options: MineOptions = {},
 	): Promise<Block> {
-		const reward = new Transaction({
-			from: null, // coinbase: minted, not sent
-			to: minerAddress,
-			amount: MINING_REWARD,
-			nonce: 0,
-			timestamp: Date.now(),
-		});
 		// Snapshot the batch NOW: mining is async, and new transactions can
 		// arrive while the nonce search runs. Those belong to a future
 		// block, not this one.
 		const batch = [...this.pending];
+		const fees = batch.reduce((sum, tx) => sum + tx.fee, 0);
+		const reward = new Transaction({
+			from: null, // coinbase: minted, not sent
+			to: minerAddress,
+			amount: MINING_REWARD + fees,
+			nonce: 0,
+			timestamp: Date.now(),
+		});
 		const transactions = [...batch, reward];
 
 		const block = new Block({

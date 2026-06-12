@@ -23,13 +23,14 @@ describe('Mempool', () => {
 		return { chain, pool, alice, bob };
 	}
 
-	function signedTx(wallet: Wallet, to: string, amount: number, nonce: number) {
+	function signedTx(wallet: Wallet, to: string, amount: number, nonce: number, fee = 0) {
 		const tx = new Transaction({
 			from: wallet.address,
 			to,
 			amount,
 			nonce,
 			timestamp: 1_700_000_005_000,
+			fee,
 		});
 		wallet.sign(tx);
 		return tx;
@@ -59,6 +60,26 @@ describe('Mempool', () => {
 		// this signs fine. The mempool must still refuse it.
 		const tooMuch = signedTx(alice, bob.address, MINING_REWARD + 1, 0);
 		expect(() => pool.addTransaction(tooMuch)).toThrow(/balance|funds/i);
+	});
+
+	it('charges the fee: the balance must cover amount + fee', async () => {
+		const { pool, alice, bob } = await setup(); // alice owns MINING_REWARD
+		// 98 + 3 > 100: affordable as an amount, not once the fee counts.
+		const tx = signedTx(alice, bob.address, MINING_REWARD - 2, 0, 3);
+		expect(() => pool.addTransaction(tx)).toThrow(/balance|funds/i);
+	});
+
+	it('pays the miner the block reward plus all collected fees', async () => {
+		const { chain, pool, alice, bob } = await setup();
+		const miner = new Wallet();
+		pool.addTransaction(signedTx(alice, bob.address, 20, 0, 3));
+		await pool.minePendingTransactions(miner.address);
+
+		// The fee left alice, never reached bob, and landed on the miner —
+		// that's WHY miners include other people's transactions at all.
+		expect(chain.getBalance(miner.address)).toBe(MINING_REWARD + 3);
+		expect(chain.getBalance(alice.address)).toBe(MINING_REWARD - 23);
+		expect(chain.getBalance(bob.address)).toBe(20);
 	});
 
 	it('rejects a double-spend already pending in the pool', async () => {

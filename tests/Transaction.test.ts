@@ -43,6 +43,16 @@ describe('Transaction', () => {
 		}
 	});
 
+	it('includes the fee in the hash, defaulting to zero', () => {
+		// The fee is part of what the sender authorizes — if it weren't
+		// hashed (and therefore signed), a miner could quietly raise it.
+		const free = new Transaction(base);
+		const paid = new Transaction({ ...base, fee: 2 });
+		expect(free.fee).toBe(0);
+		expect(paid.fee).toBe(2);
+		expect(paid.hash()).not.toBe(free.hash());
+	});
+
 	it('excludes the signature from the hash', () => {
 		// The signature signs the hash, so the hash cannot include the
 		// signature — that would be circular. Attaching a signature must

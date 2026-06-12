@@ -22,6 +22,8 @@ export class Transaction {
 	readonly from: Address | null;
 	readonly to: Address;
 	readonly amount: number;
+	/** miner tip on top of `amount`; signed like every other field */
+	readonly fee: number;
 	readonly nonce: number;
 	readonly timestamp: number;
 	/** Mutable: a Wallet attaches this after construction. */
@@ -31,6 +33,7 @@ export class Transaction {
 		this.from = data.from;
 		this.to = data.to;
 		this.amount = data.amount;
+		this.fee = data.fee ?? 0;
 		this.nonce = data.nonce;
 		this.timestamp = data.timestamp;
 		this.signature = data.signature;
@@ -56,6 +59,7 @@ export class Transaction {
 			from: this.from,
 			to: this.to,
 			amount: this.amount,
+			fee: this.fee,
 			nonce: this.nonce,
 			timestamp: this.timestamp,
 		});

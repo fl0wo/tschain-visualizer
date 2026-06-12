@@ -17,6 +17,8 @@ export interface TxInfo {
 	readonly fromName: string;
 	readonly toName: string;
 	readonly amount: number;
+	/** miner tip paid by the sender on top of `amount` */
+	readonly fee: number;
 	readonly nonce: number;
 	readonly coinbase: boolean;
 	readonly signatureValid: boolean;
@@ -54,7 +56,13 @@ export interface ChainEvents {
 	'wallet:created': { name: string; address: Address };
 	'tx:added': TxInfo;
 	'tx:rejected': { reason: string; fromName: string; toName: string; amount: number };
-	'mining:started': { index: number; minerName: string; txCount: number };
+	'mining:started': {
+		index: number;
+		minerName: string;
+		txCount: number;
+		/** everyone racing for this block (winner listed first) */
+		competitors: readonly string[];
+	};
 	'mining:progress': { index: number; nonce: number; hashAttempt: Hex };
 	'block:mined': BlockInfo;
 	'chain:tampered': { blockIndex: number };
@@ -147,7 +155,7 @@ export class ChainModel {
 	 * Returns true if accepted; on rejection emits the reason and
 	 * returns false rather than throwing at the UI.
 	 */
-	submitTransaction(fromName: string, toName: string, amount: number): boolean {
+	submitTransaction(fromName: string, toName: string, amount: number, fee = 0): boolean {
 		const from = this.requireWallet(fromName);
 		const to = this.requireWallet(toName);
 
@@ -156,6 +164,7 @@ export class ChainModel {
 			from: from.address,
 			to: to.address,
 			amount,
+			fee,
 			nonce: this.chain.getNonce(from.address) + pendingFromSender,
 			timestamp: Date.now(),
 		});
@@ -188,13 +197,15 @@ export class ChainModel {
 	 * how the search spends wall-clock time; block:mined is held back
 	 * until both the proof-of-work AND the minimum duration are done.
 	 */
-	async mine(minerName: string): Promise<BlockInfo> {
+	async mine(minerName: string, competitors: string[] = []): Promise<BlockInfo> {
 		const miner = this.requireWallet(minerName);
 		const nextIndex = this.chain.latestBlock.index + 1;
 		this.events.emit('mining:started', {
 			index: nextIndex,
 			minerName,
 			txCount: this.mempool.pending.length + 1, // +1 coinbase
+			// the winner always races too; dedupe keeps them listed once
+			competitors: [...new Set([minerName, ...competitors])],
 		});
 
 		const [block] = await Promise.all([
@@ -306,6 +317,7 @@ export class ChainModel {
 			fromName: this.nameOf(tx.from),
 			toName: this.nameOf(tx.to),
 			amount: tx.amount,
+			fee: tx.fee,
 			nonce: tx.nonce,
 			coinbase: tx.isCoinbase(),
 			signatureValid: tx.isCoinbase() ? true : Wallet.verify(tx),

@@ -29,6 +29,14 @@ export interface TransactionData {
 	readonly to: Address;
 	readonly amount: number;
 	/**
+	 * Tip paid to whichever miner includes this transaction in a block,
+	 * on top of `amount`. Fees are the long-term incentive to mine
+	 * (block rewards shrink over time in real chains) — and they are
+	 * covered by the signature, so nobody can raise them after the fact.
+	 * Optional; defaults to 0.
+	 */
+	readonly fee?: number;
+	/**
 	 * Per-sender counter (0, 1, 2, …). Prevents replay: a signed
 	 * transaction can only be included once, at exactly its nonce position.
 	 */

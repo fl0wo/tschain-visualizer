@@ -136,7 +136,9 @@ export class Blockchain {
 		let balance = 0;
 		for (const block of this.blocks) {
 			for (const tx of block.transactions) {
-				if (tx.from === address) balance -= tx.amount;
+				// the sender pays amount + fee; the fee reaches the miner
+				// via the block's coinbase, never the recipient
+				if (tx.from === address) balance -= tx.amount + tx.fee;
 				if (tx.to === address) balance += tx.amount;
 			}
 		}

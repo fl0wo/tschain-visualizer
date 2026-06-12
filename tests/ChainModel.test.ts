@@ -45,6 +45,30 @@ describe('ChainModel', () => {
 		expect(model.getBalance(alice.address)).toBe(MINING_REWARD);
 	});
 
+	it('announces the competing miners of a race', async () => {
+		const model = new ChainModel(1);
+		model.createWallet('Alice');
+		model.createWallet('Bob');
+		model.createWallet('Carol');
+		let competitors: string[] = [];
+		model.events.on('mining:started', (p) => (competitors = [...p.competitors]));
+
+		await model.mine('Alice', ['Bob', 'Carol']);
+		// the winner always races too, listed first
+		expect(competitors).toEqual(['Alice', 'Bob', 'Carol']);
+	});
+
+	it('carries the fee through tx:added', async () => {
+		const model = new ChainModel(1);
+		model.createWallet('Alice');
+		model.createWallet('Bob');
+		await model.mine('Alice');
+		let fee = -1;
+		model.events.on('tx:added', (p) => (fee = p.fee));
+		model.submitTransaction('Alice', 'Bob', 10, 2);
+		expect(fee).toBe(2);
+	});
+
 	it('accepts a valid payment and announces tx:added', async () => {
 		const model = new ChainModel(1);
 		model.createWallet('Alice');
