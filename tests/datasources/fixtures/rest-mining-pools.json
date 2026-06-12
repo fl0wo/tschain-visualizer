@@ -1,0 +1,15 @@
+{
+	"pools": [
+		{ "poolId": 112, "name": "Foundry USA", "link": "https://foundrydigital.com", "blockCount": 32, "rank": 1, "emptyBlocks": 0, "slug": "foundryusa", "avgMatchRate": 99.38, "avgFeeDelta": "-0.01456875", "poolUniqueId": 111 },
+		{ "poolId": 45, "name": "AntPool", "link": "https://www.antpool.com", "blockCount": 30, "rank": 2, "emptyBlocks": 1, "slug": "antpool", "avgMatchRate": 95.66, "avgFeeDelta": "-0.06239333", "poolUniqueId": 44 },
+		{ "poolId": 74, "name": "ViaBTC", "link": "https://viabtc.com", "blockCount": 15, "rank": 3, "emptyBlocks": 0, "slug": "viabtc", "avgMatchRate": 99.89, "avgFeeDelta": "-0.01506667", "poolUniqueId": 73 },
+		{ "poolId": 37, "name": "F2Pool", "link": "https://www.f2pool.com", "blockCount": 12, "rank": 4, "emptyBlocks": 0, "slug": "f2pool", "avgMatchRate": 99.83, "avgFeeDelta": "-0.04065833", "poolUniqueId": 36 },
+		{ "poolId": 103, "name": "SpiderPool", "link": "https://www.spiderpool.com", "blockCount": 11, "rank": 5, "emptyBlocks": 0, "slug": "spiderpool", "avgMatchRate": 98.69, "avgFeeDelta": "-0.05323636", "poolUniqueId": 102 },
+		{ "poolId": 142, "name": "SECPOOL", "link": "https://www.secpool.com", "blockCount": 9, "rank": 6, "emptyBlocks": 0, "slug": "secpool", "avgMatchRate": 99.71, "avgFeeDelta": "-0.03683333", "poolUniqueId": 141 },
+		{ "poolId": 5, "name": "Luxor", "link": "https://mining.luxor.tech", "blockCount": 5, "rank": 7, "emptyBlocks": 0, "slug": "luxor", "avgMatchRate": 97.25, "avgFeeDelta": "-0.03696000", "poolUniqueId": 4 }
+	],
+	"blockCount": 131,
+	"lastEstimatedHashrate": 907712981356965700000,
+	"lastEstimatedHashrate3d": 935056682536414500000,
+	"lastEstimatedHashrate1w": 881048072742795000000
+}

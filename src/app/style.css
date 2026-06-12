@@ -487,6 +487,70 @@ canvas {
 	text-align: right;
 }
 
+/* ── mining pools panel (live pages) ───────────────────────────────── */
+
+.pool-row {
+	display: grid;
+	grid-template-columns: 92px 1fr 36px;
+	align-items: center;
+	column-gap: 8px;
+	padding: 4px 0;
+	border-radius: 4px;
+	transition: background var(--hover-ms) ease;
+}
+
+.pool-name {
+	font-weight: 500;
+	font-size: 12px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.pool-others .pool-name {
+	color: var(--text-secondary);
+	font-weight: 400;
+}
+
+.pool-bar {
+	height: 4px;
+	border-radius: 2px;
+	background: rgba(51, 51, 51, 0.6);
+	overflow: hidden;
+}
+
+.pool-bar-fill {
+	display: block;
+	height: 100%;
+	border-radius: 2px;
+	background: var(--pending);
+	transition: width 400ms ease;
+}
+
+.pool-share {
+	font-size: 11px;
+	color: var(--text-secondary);
+	text-align: right;
+}
+
+.pools-footer {
+	margin-top: 6px;
+	font-size: 10px;
+}
+
+.pool-winner {
+	animation: pool-win 1.6s ease;
+}
+
+@keyframes pool-win {
+	0% {
+		background: color-mix(in srgb, var(--valid) 25%, transparent);
+	}
+	100% {
+		background: transparent;
+	}
+}
+
 /* ── bottom ticker ─────────────────────────────────────────────────── */
 
 .ticker {

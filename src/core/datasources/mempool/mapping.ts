@@ -1,8 +1,15 @@
-import type { BlockInfo, ProjectedBlock, StatsUpdate, StreamedTx } from '../../events/chainEvents';
+import type {
+	BlockInfo,
+	PoolStat,
+	ProjectedBlock,
+	StatsUpdate,
+	StreamedTx,
+} from '../../events/chainEvents';
 import type {
 	FeesDto,
 	MempoolBlockDto,
 	MempoolInfoDto,
+	MiningPoolsDto,
 	ProjectedBlockDto,
 	StrippedTxTuple,
 } from './schemas';
@@ -59,6 +66,26 @@ export function streamedFromTuples(tuples: readonly StrippedTxTuple[]): Streamed
 		valueBtc: t[3] / SATS_PER_BTC,
 		feeRate: typeof t[4] === 'number' ? t[4] : undefined,
 	}));
+}
+
+/** pool record → share of recent blocks ≈ next-block win probability */
+export function poolStatsFrom(dto: MiningPoolsDto): {
+	pools: PoolStat[];
+	sampleBlocks: number;
+	networkHashrateEhs?: number;
+} {
+	const total = dto.blockCount ?? dto.pools.reduce((sum, p) => sum + p.blockCount, 0);
+	return {
+		pools: dto.pools.map((p) => ({
+			name: p.name,
+			slug: p.slug,
+			blockCount: p.blockCount,
+			share: total > 0 ? p.blockCount / total : 0,
+		})),
+		sampleBlocks: total,
+		networkHashrateEhs:
+			dto.lastEstimatedHashrate !== undefined ? dto.lastEstimatedHashrate / 1e18 : undefined,
+	};
 }
 
 export function statsFrom(info?: MempoolInfoDto, fees?: FeesDto): StatsUpdate {

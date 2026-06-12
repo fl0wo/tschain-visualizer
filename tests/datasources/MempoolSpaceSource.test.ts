@@ -5,6 +5,7 @@ import {
 } from '../../src/core/datasources/mempool/MempoolSpaceSource';
 import { MempoolRestClient } from '../../src/core/datasources/mempool/restClient';
 import type { BlockInfo, ProjectedBlock } from '../../src/core/events/chainEvents';
+import miningPoolsFixture from './fixtures/rest-mining-pools.json';
 import restBlocksFixture from './fixtures/rest-blocks.json';
 import wsBlockFixture from './fixtures/ws-block.json';
 import wsMempoolBlocksFixture from './fixtures/ws-mempool-blocks.json';
@@ -43,11 +44,15 @@ class FakeWebSocket implements WebSocketLike {
 	}
 }
 
-/** fetch stub: serves /v1/blocks from a queue (last response repeats) */
+/** fetch stub: /v1/blocks served from a queue (last response repeats);
+ *  /v1/mining/pools served the fixture, so pool refreshes never shift
+ *  the blocks queue the resync assertions depend on */
 function makeRest(responses: unknown[]): MempoolRestClient {
 	let call = 0;
-	return new MempoolRestClient(async () => {
-		const body = responses[Math.min(call++, responses.length - 1)];
+	return new MempoolRestClient(async (url) => {
+		const body = url.includes('/mining/pools')
+			? miningPoolsFixture
+			: responses[Math.min(call++, responses.length - 1)];
 		return { ok: true, status: 200, json: async () => body };
 	});
 }
@@ -159,6 +164,29 @@ describe('MempoolSpaceSource', () => {
 		expect(batches[0]![0]!.valueBtc).toBeCloseTo(0.0035186, 7);
 		expect(batches[0]![0]!.feeRate).toBeCloseTo(3.91, 2);
 		expect(batches[0]![1]!.valueBtc).toBeCloseTo(0.09391266, 8);
+	});
+
+	it('emits the pool distribution with shares ≈ next-block win odds', async () => {
+		const { source, sockets } = makeSource([restBlocksFixture]);
+		const updates: Array<{
+			pools: readonly { name: string; share: number }[];
+			sampleBlocks: number;
+			networkHashrateEhs?: number;
+		}> = [];
+		source.events.on('miners:updated', (p) => updates.push(p));
+
+		await source.start();
+		sockets[0]!.open();
+		await vi.runOnlyPendingTimersAsync();
+
+		expect(updates).toHaveLength(1);
+		const { pools, sampleBlocks, networkHashrateEhs } = updates[0]!;
+		expect(sampleBlocks).toBe(131);
+		expect(pools[0]!.name).toBe('Foundry USA');
+		// 32 of 131 blocks last 24h → ~24% chance to win the next one
+		expect(pools[0]!.share).toBeCloseTo(32 / 131, 5);
+		// H/s → EH/s at the boundary
+		expect(networkHashrateEhs).toBeCloseTo(907.7, 1);
 	});
 
 	it('reconnects with backoff, resubscribes, and resyncs missed blocks', async () => {

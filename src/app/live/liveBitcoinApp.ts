@@ -7,6 +7,7 @@
 import { MempoolSpaceSource } from '../../core/datasources/mempool/MempoolSpaceSource';
 import { Hud } from '../view/Hud';
 import { LiveStatsPanel } from '../view/LiveStatsPanel';
+import { PoolsPanel } from '../view/PoolsPanel';
 import { SceneView } from '../view/SceneView';
 import { LiveBitcoinPresenter } from './LiveBitcoinPresenter';
 
@@ -16,8 +17,9 @@ export function mountLiveBitcoinApp(app: HTMLElement): void {
 	hud.onMagicToggle = (enabled) => view.setPostProcessing(enabled);
 
 	const stats = new LiveStatsPanel(hud.rightStack);
+	const pools = new PoolsPanel(hud.leftStack); // where the sim's race panel lives
 	const source = new MempoolSpaceSource();
-	new LiveBitcoinPresenter(source, view, hud, stats);
+	new LiveBitcoinPresenter(source, view, hud, stats, pools);
 
 	hud.setSourcePill('connecting');
 	void source.start();

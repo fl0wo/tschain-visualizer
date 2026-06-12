@@ -2,6 +2,7 @@ import type { DataSource } from '../../core/datasources/DataSource';
 import type { BlockInfo } from '../../core/events/chainEvents';
 import type { Hud } from '../view/Hud';
 import type { LiveStatsPanel } from '../view/LiveStatsPanel';
+import type { PoolsPanel } from '../view/PoolsPanel';
 import type { SceneView } from '../view/SceneView';
 
 /**
@@ -19,8 +20,13 @@ export class LiveBitcoinPresenter {
 		private readonly view: SceneView,
 		private readonly hud: Hud,
 		private readonly stats: LiveStatsPanel,
+		private readonly pools: PoolsPanel,
 	) {
 		const { events } = source;
+
+		events.on('miners:updated', ({ pools: poolStats, sampleBlocks, networkHashrateEhs }) => {
+			this.pools.update(poolStats, sampleBlocks, networkHashrateEhs);
+		});
 
 		events.on('block:mined', (block) => {
 			if (block.backfill) {
@@ -82,6 +88,7 @@ export class LiveBitcoinPresenter {
 		const miner = block.minerName ?? 'an unknown pool';
 		const reward = block.rewardTotal?.toFixed(3);
 		if (reward) this.view.celebrateReward(this.view.blockCount - 1, `+${reward} BTC → ${miner}`);
+		if (block.minerName) this.pools.highlight(block.minerName); // the lottery draw resolves
 
 		this.hud.narrator.say(
 			`Block ${block.index.toLocaleString('en-US')} mined by ${miner}`,

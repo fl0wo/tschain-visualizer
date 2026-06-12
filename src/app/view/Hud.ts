@@ -16,6 +16,9 @@ import { identiconDataUrl } from './identicon';
 export class Hud {
 	/** Right-side panel stack other components (SpeedControl) mount into. */
 	readonly rightStack: HTMLDivElement;
+	/** Bottom-left stack (narrator, miners/pools panels) — exposed so
+	 *  page-specific panels can mount alongside the shared ones. */
+	leftStack!: HTMLDivElement;
 
 	/** Composition root wires this to SceneView.setPostProcessing —
 	 *  the HUD doesn't know what "magic shaders" are, it just reports. */
@@ -119,11 +122,11 @@ export class Hud {
 
 		// left stack under the wordmark: the narrator explains the current
 		// phase, the miners panel shows the PoW race behind each block
-		const leftStack = document.createElement('div');
-		leftStack.className = 'left-stack';
-		root.appendChild(leftStack);
-		this.narrator = new Narrator(leftStack);
-		this.miners = new MinersPanel(leftStack, { hidden: options.hideMiners });
+		this.leftStack = document.createElement('div');
+		this.leftStack.className = 'left-stack';
+		root.appendChild(this.leftStack);
+		this.narrator = new Narrator(this.leftStack);
+		this.miners = new MinersPanel(this.leftStack, { hidden: options.hideMiners });
 	}
 
 	/**

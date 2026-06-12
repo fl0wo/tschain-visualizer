@@ -1,4 +1,10 @@
-import { blockSchema, restBlocksSchema, type MempoolBlockDto } from './schemas';
+import {
+	blockSchema,
+	miningPoolsSchema,
+	restBlocksSchema,
+	type MempoolBlockDto,
+	type MiningPoolsDto,
+} from './schemas';
 
 /**
  * Minimal fetch shape — injectable so tests never touch the network and
@@ -29,6 +35,12 @@ export class MempoolRestClient {
 		const dtos = restBlocksSchema.parse(await this.get('/v1/blocks'));
 		for (const dto of dtos) this.byHash.set(dto.id, dto);
 		return dtos;
+	}
+
+	/** GET /v1/mining/pools/24h — pool distribution over the last day.
+	 *  Not cached: it changes with every block (callers throttle). */
+	async miningPools(): Promise<MiningPoolsDto> {
+		return miningPoolsSchema.parse(await this.get('/v1/mining/pools/24h'));
 	}
 
 	/** GET /block/:hash — detail for one block; cached forever by hash. */

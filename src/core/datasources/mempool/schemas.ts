@@ -111,9 +111,31 @@ export const wsMessageSchema = z
 	})
 	.loose();
 
+/** GET /v1/mining/pools/24h — who mined the recent blocks */
+export const miningPoolsSchema = z
+	.object({
+		pools: z.array(
+			z
+				.object({
+					name: z.string(),
+					slug: z.string().optional(),
+					link: z.string().optional(),
+					blockCount: z.number(),
+					rank: z.number().optional(),
+				})
+				.loose(),
+		),
+		/** total blocks in the sampled period */
+		blockCount: z.number().optional(),
+		/** network hashrate estimate, H/s */
+		lastEstimatedHashrate: z.number().optional(),
+	})
+	.loose();
+
 export type MempoolBlockDto = z.infer<typeof blockSchema>;
 export type ProjectedBlockDto = z.infer<typeof projectedBlockSchema>;
 export type StrippedTxTuple = z.infer<typeof strippedTxTupleSchema>;
+export type MiningPoolsDto = z.infer<typeof miningPoolsSchema>;
 export type MempoolInfoDto = z.infer<typeof mempoolInfoSchema>;
 export type FeesDto = z.infer<typeof feesSchema>;
 export type WsMessage = z.infer<typeof wsMessageSchema>;

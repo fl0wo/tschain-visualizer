@@ -100,6 +100,22 @@ export interface StreamedTx {
 	readonly feeRate?: number;
 }
 
+/**
+ * One mining pool's recent record. NOTE the honest semantics: nobody can
+ * list who is "currently hashing" — miners work privately and only the
+ * winner becomes known. A pool's share of recent blocks is the best
+ * public estimate of its hashrate, and therefore of its probability of
+ * mining the NEXT block.
+ */
+export interface PoolStat {
+	readonly name: string;
+	readonly slug?: string;
+	/** blocks mined in the sampled period */
+	readonly blockCount: number;
+	/** share of the period's blocks ≈ chance to win the next block */
+	readonly share: number;
+}
+
 export type SourceStatus = 'idle' | 'connecting' | 'live' | 'degraded' | 'disconnected';
 
 /** Every announcement a chain data source can make. Name → payload. */
@@ -123,6 +139,14 @@ export interface ChainEvents {
 	'mempool:projection': { blocks: readonly ProjectedBlock[] };
 	/** transactions just streamed INTO the projected next block */
 	'tx:streamed': { txs: readonly StreamedTx[] };
+	/** recent mining-pool distribution (≈ next-block win odds) */
+	'miners:updated': {
+		pools: readonly PoolStat[];
+		/** total blocks in the sampled period */
+		sampleBlocks: number;
+		/** network hashrate estimate, EH/s */
+		networkHashrateEhs?: number;
+	};
 	'stats:updated': StatsUpdate;
 	'chain:reorg': { orphanedHashes: readonly Hex[]; newTipHeight: number };
 	'source:status': { kind: 'simulated' | 'live'; status: SourceStatus; retryInSec?: number };

@@ -2,7 +2,13 @@ import { TypedEventEmitter } from '../../events';
 import type { ChainEvents, SourceStatus } from '../../events/chainEvents';
 import type { Hex } from '../../types';
 import type { DataSource } from '../DataSource';
-import { blockInfoFromDto, projectionFromDtos, statsFrom, streamedFromTuples } from './mapping';
+import {
+	blockInfoFromDto,
+	poolStatsFrom,
+	projectionFromDtos,
+	statsFrom,
+	streamedFromTuples,
+} from './mapping';
 import { MempoolRestClient } from './restClient';
 import { wsMessageSchema, type FeesDto, type MempoolBlockDto, type MempoolInfoDto } from './schemas';
 
@@ -112,6 +118,7 @@ export class MempoolSpaceSource implements DataSource {
 			this.setStatus('degraded');
 		}
 
+		void this.refreshPools();
 		this.connect();
 	}
 
@@ -239,6 +246,25 @@ export class MempoolSpaceSource implements DataSource {
 		this.emitted.set(dto.height, dto.id);
 		// bounded memory: we only need recent history for reorg diffing
 		this.emitted.delete(dto.height - 60);
+		// the pool distribution shifted by one block — refresh (throttled)
+		if (!backfill) void this.refreshPools();
+	}
+
+	private lastPoolsFetchAt = 0;
+
+	/**
+	 * Who has been winning blocks lately ≈ who is most likely to mine the
+	 * next one. Refreshed on start and after each live block, throttled —
+	 * the distribution only moves one block at a time.
+	 */
+	private async refreshPools(): Promise<void> {
+		if (Date.now() - this.lastPoolsFetchAt < 60_000) return;
+		this.lastPoolsFetchAt = Date.now();
+		try {
+			this.events.emit('miners:updated', poolStatsFrom(await this.rest.miningPools()));
+		} catch {
+			// purely informational — never degrade the stream over it
+		}
 	}
 
 	/**
