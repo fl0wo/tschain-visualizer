@@ -1,0 +1,4 @@
+# esbuild (used by vite/tsx) needs its postinstall script to download the
+# platform binary; pnpm 10+ blocks build scripts unless explicitly allowed.
+onlyBuiltDependencies:
+  - esbuild

@@ -1,0 +1,27 @@
+{
+	"name": "tschain-visualizer",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "vite",
+		"build": "tsc --noEmit && vite build",
+		"preview": "vite preview",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"demo": "tsx src/demo.ts"
+	},
+	"dependencies": {
+		"@noble/curves": "^1.8.1",
+		"@noble/hashes": "^1.7.1",
+		"three": "^0.182.0"
+	},
+	"devDependencies": {
+		"@types/node": "^25.9.3",
+		"@types/three": "^0.182.0",
+		"tsx": "^4.19.3",
+		"typescript": "^5.5.2",
+		"vite": "^7.3.0",
+		"vitest": "~3.2.0"
+	}
+}

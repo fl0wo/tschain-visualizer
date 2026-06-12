@@ -1,0 +1,28 @@
+{
+	"compilerOptions": {
+		/* Target modern JS — Vite transpiles for the browser, Node 22 runs tests/demo natively. */
+		"target": "es2022",
+		"lib": ["es2022", "dom", "dom.iterable"],
+
+		/* Vite is the bundler, so use bundler-style module resolution. */
+		"module": "es2022",
+		"moduleResolution": "bundler",
+		"resolveJsonModule": true,
+
+		/* Type-check only; Vite/tsx handle emitting. */
+		"noEmit": true,
+		"isolatedModules": true,
+		"allowSyntheticDefaultImports": true,
+		"forceConsistentCasingInFileNames": true,
+
+		/* Strict mode, as the project demands — plus a few extra footgun guards. */
+		"strict": true,
+		"noUncheckedIndexedAccess": true,
+		"noImplicitOverride": true,
+		"noFallthroughCasesInSwitch": true,
+
+		"skipLibCheck": true,
+		"types": ["vite/client"]
+	},
+	"include": ["src/**/*.ts", "tests/**/*.ts"]
+}
