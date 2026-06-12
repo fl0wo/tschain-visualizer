@@ -1,5 +1,7 @@
 # tschain-visualizer
 
+[Live Demo](https://tschain.floriansabani.com/simulate/pow)
+
 A 3D visualizer for learning how blockchains actually work — watch
 consensus happen, simulated or **live**. TypeScript + three.js, no
 framework, no backend.
