@@ -115,6 +115,13 @@ export const theme = {
 		followDuration: 1.0,
 	},
 
+	/** hover/pinned dialog callout: dot · leader line · dot · card */
+	callout: {
+		/** how far (px) the card floats above the anchored object */
+		liftPx: 76,
+		dotPx: 5,
+	},
+
 	layout: {
 		/** block cube edge length */
 		cubeSize: 1.6,
@@ -205,4 +212,6 @@ export function applyCssVars(): void {
 	root.setProperty('--red', cssColor(theme.colors.red));
 	root.setProperty('--hover-ms', `${theme.timing.hoverMs}ms`);
 	root.setProperty('--ticker-ms', `${theme.timing.tickerMs}ms`);
+	root.setProperty('--callout-lift', `${theme.callout.liftPx}px`);
+	root.setProperty('--callout-dot', `${theme.callout.dotPx}px`);
 }

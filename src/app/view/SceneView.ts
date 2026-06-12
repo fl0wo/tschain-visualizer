@@ -64,9 +64,14 @@ export class SceneView {
 	private brokenLinks = new Set<number>();
 	private mismatchedBlocks = new Set<number>();
 
-	// DOM overlays
-	private readonly tooltip: HTMLDivElement;
-	private readonly pinned: HTMLDivElement;
+	// DOM overlays — both dialogs are "callouts": the card floats above
+	// the object, tied to it by a dot · leader line · dot.
+	private readonly hover: { root: HTMLDivElement; card: HTMLDivElement };
+	private readonly pinned: { root: HTMLDivElement; card: HTMLDivElement };
+	private hoverKey: string | null = null;
+	private pinnedTarget: THREE.Object3D | null = null;
+	private pinnedLift = 0;
+	private readonly projVec = new THREE.Vector3();
 
 	constructor(container: HTMLElement) {
 		this.renderer = new THREE.WebGLRenderer({ antialias: false }); // FXAA pass instead
@@ -144,21 +149,22 @@ export class SceneView {
 		vignette.className = 'vignette';
 		container.appendChild(vignette);
 
-		this.tooltip = document.createElement('div');
-		this.tooltip.className = 'tooltip-card';
-		this.tooltip.style.display = 'none';
-		container.appendChild(this.tooltip);
-
-		this.pinned = document.createElement('div');
-		this.pinned.className = 'tooltip-card pinned-card';
-		this.pinned.style.display = 'none';
-		container.appendChild(this.pinned);
-		this.pinned.addEventListener('click', (e) => {
-			if ((e.target as HTMLElement).dataset.close !== undefined) this.pinned.style.display = 'none';
+		this.hover = SceneView.buildCallout('');
+		this.pinned = SceneView.buildCallout('pinned');
+		container.append(this.hover.root, this.pinned.root);
+		this.pinned.root.addEventListener('click', (e) => {
+			if ((e.target as HTMLElement).dataset.close !== undefined) this.closePinned();
 		});
 
-		this.renderer.domElement.addEventListener('pointermove', (e) => this.onPointerMove(e));
-		this.renderer.domElement.addEventListener('click', (e) => this.onClick(e));
+		this.renderer.domElement.addEventListener('pointermove', (e) => {
+			this.pointer.set(
+				(e.clientX / window.innerWidth) * 2 - 1,
+				-(e.clientY / window.innerHeight) * 2 + 1,
+			);
+		});
+		// leaving the canvas (e.g. onto a HUD panel) must drop the hover
+		this.renderer.domElement.addEventListener('pointerleave', () => this.pointer.set(2, 2));
+		this.renderer.domElement.addEventListener('click', () => this.onClick());
 		window.addEventListener('resize', () => this.onResize());
 
 		this.renderer.setAnimationLoop(() => this.tick());
@@ -314,7 +320,7 @@ export class SceneView {
 	// ── pinned card (controller pushes live confirmations here) ────────
 
 	setPinnedConfirmations(count: number): void {
-		const span = this.pinned.querySelector<HTMLElement>('[data-confirmations]');
+		const span = this.pinned.card.querySelector<HTMLElement>('[data-confirmations]');
 		if (!span) return;
 		if (span.textContent !== String(count)) {
 			span.textContent = String(count);
@@ -354,6 +360,19 @@ export class SceneView {
 
 	// ── pointer interaction ────────────────────────────────────────────
 
+	/** dot · line · dot · card — built once per dialog, repositioned per frame */
+	private static buildCallout(extraClass: string): { root: HTMLDivElement; card: HTMLDivElement } {
+		const root = document.createElement('div');
+		root.className = `callout ${extraClass}`;
+		root.style.display = 'none';
+		root.innerHTML =
+			`<span class="callout-dot callout-dot-anchor"></span>` +
+			`<span class="callout-line"></span>` +
+			`<span class="callout-dot callout-dot-card"></span>` +
+			`<div class="callout-card"></div>`;
+		return { root, card: root.querySelector('.callout-card')! };
+	}
+
 	private hoverTargets(): THREE.Mesh[] {
 		return [
 			...this.mempool.hoverTargets,
@@ -361,12 +380,91 @@ export class SceneView {
 		];
 	}
 
-	private pick(): { tx?: TxInfo; block?: BlockInfo } | null {
+	private pick(): { object: THREE.Object3D; tx?: TxInfo; block?: BlockInfo } | null {
 		this.raycaster.setFromCamera(this.pointer, this.camera);
 		const hit = this.raycaster.intersectObjects(this.hoverTargets(), false)[0];
 		if (!hit) return null;
 		const { tx, block } = hit.object.userData as { tx?: TxInfo; block?: BlockInfo };
-		return tx ? { tx } : block ? { block } : null;
+		return tx ? { object: hit.object, tx } : block ? { object: hit.object, block } : null;
+	}
+
+	/** world-space lift so the anchor dot sits just above the cube's top */
+	private static liftFor(picked: { tx?: TxInfo }): number {
+		return picked.tx ? theme.layout.txCubeSize * 0.8 : theme.layout.cubeSize * 0.62;
+	}
+
+	/** project an object (plus a world-Y lift) to CSS pixel coordinates */
+	private projectToScreen(object: THREE.Object3D, worldLiftY: number): { x: number; y: number } {
+		object.getWorldPosition(this.projVec);
+		this.projVec.y += worldLiftY;
+		this.projVec.project(this.camera);
+		return {
+			x: ((this.projVec.x + 1) / 2) * window.innerWidth,
+			y: ((1 - this.projVec.y) / 2) * window.innerHeight,
+		};
+	}
+
+	/**
+	 * Place a callout: the root sits ON the anchor point (where the
+	 * first dot lives); the card floats `--callout-lift` above it — or
+	 * below, when the anchor is too close to the top of the screen. The
+	 * card may shift sideways to stay on-screen; the dots and line stay
+	 * glued to the anchor.
+	 */
+	private positionCallout(
+		callout: { root: HTMLDivElement; card: HTMLDivElement },
+		x: number,
+		y: number,
+	): void {
+		callout.root.style.left = `${x}px`;
+		callout.root.style.top = `${y}px`;
+		const below = y - theme.callout.liftPx - callout.card.offsetHeight - 12 < 0;
+		callout.root.classList.toggle('callout--below', below);
+
+		const half = callout.card.offsetWidth / 2;
+		let shift = 0;
+		if (x - half < 8) shift = 8 - (x - half);
+		else if (x + half > window.innerWidth - 8) shift = window.innerWidth - 8 - (x + half);
+		callout.card.style.marginLeft = `${shift}px`;
+	}
+
+	/** hover dialog, frame-synced: re-picked and re-anchored every tick
+	 *  so it stays glued to the object even while the camera pans */
+	private updateHoverCallout(): void {
+		const picked = this.pick();
+		if (!picked) {
+			this.hover.root.style.display = 'none';
+			this.hoverKey = null;
+			return;
+		}
+		const key = picked.tx?.hash ?? picked.block?.hash ?? '';
+		if (key !== this.hoverKey) {
+			// only rebuild the card when the hovered object changes —
+			// rewriting innerHTML every frame would thrash layout
+			this.hoverKey = key;
+			this.hover.card.innerHTML = this.cardHtml(picked);
+		}
+		this.hover.root.style.display = 'block';
+		const anchor = this.projectToScreen(picked.object, SceneView.liftFor(picked));
+		this.positionCallout(this.hover, anchor.x, anchor.y);
+	}
+
+	private updatePinnedCallout(): void {
+		if (!this.pinnedTarget) return;
+		// the target may have left the scene (a pool cube mined away)
+		let rootAncestor: THREE.Object3D = this.pinnedTarget;
+		while (rootAncestor.parent) rootAncestor = rootAncestor.parent;
+		if (rootAncestor !== this.scene) {
+			this.closePinned();
+			return;
+		}
+		const anchor = this.projectToScreen(this.pinnedTarget, this.pinnedLift);
+		this.positionCallout(this.pinned, anchor.x, anchor.y);
+	}
+
+	private closePinned(): void {
+		this.pinned.root.style.display = 'none';
+		this.pinnedTarget = null;
 	}
 
 	private cardHtml(picked: { tx?: TxInfo; block?: BlockInfo }): string {
@@ -392,36 +490,22 @@ export class SceneView {
 		);
 	}
 
-	private onPointerMove(event: PointerEvent): void {
-		this.pointer.set(
-			(event.clientX / window.innerWidth) * 2 - 1,
-			-(event.clientY / window.innerHeight) * 2 + 1,
-		);
-		const picked = this.pick();
-		if (picked) {
-			this.tooltip.innerHTML = this.cardHtml(picked);
-			this.tooltip.style.display = 'block';
-			this.tooltip.style.left = `${event.clientX + 14}px`;
-			this.tooltip.style.top = `${event.clientY + 14}px`;
-		} else {
-			this.tooltip.style.display = 'none';
-		}
-	}
-
-	/** Clicking a cube pins its card (with live confirmations for a tx). */
-	private onClick(event: MouseEvent): void {
+	/** Clicking a cube pins its callout (with live confirmations for a tx).
+	 *  The pinned card keeps tracking its object across camera moves. */
+	private onClick(): void {
 		const picked = this.pick();
 		if (!picked) return;
 		const confirmations = picked.tx
 			? `<div class="muted">confirmations <span class="mono" data-confirmations>0</span></div>`
 			: '';
-		this.pinned.innerHTML =
+		this.pinned.card.innerHTML =
 			`<button class="card-close" data-close aria-label="close">×</button>` +
 			this.cardHtml(picked) +
 			confirmations;
-		this.pinned.style.display = 'block';
-		this.pinned.style.left = `${Math.min(event.clientX + 14, window.innerWidth - 240)}px`;
-		this.pinned.style.top = `${Math.min(event.clientY + 14, window.innerHeight - 160)}px`;
+		this.pinnedTarget = picked.object;
+		this.pinnedLift = SceneView.liftFor(picked);
+		this.pinned.root.style.display = 'block';
+		this.updatePinnedCallout();
 		if (picked.tx) this.onTxPinned?.(picked.tx);
 	}
 
@@ -465,6 +549,11 @@ export class SceneView {
 
 		this.maybeFollow();
 		this.controls.update();
+
+		// callouts last, so they track this frame's camera, not the previous one's
+		this.updateHoverCallout();
+		this.updatePinnedCallout();
+
 		this.composer.render();
 	}
 }
