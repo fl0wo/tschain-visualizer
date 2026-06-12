@@ -116,6 +116,16 @@ export interface PoolStat {
 	readonly share: number;
 }
 
+/** One staking node in a proof-of-stake page. */
+export interface ValidatorInfo {
+	readonly name: string;
+	readonly address: Address;
+	/** locked deposit — the validator's weight in proposer selection */
+	readonly stake: number;
+	/** protocol rewards earned so far (proposals, attestations, fees) */
+	readonly earned: number;
+}
+
 export type SourceStatus = 'idle' | 'connecting' | 'live' | 'degraded' | 'disconnected';
 
 /** Every announcement a chain data source can make. Name → payload. */
@@ -139,6 +149,19 @@ export interface ChainEvents {
 	'mempool:projection': { blocks: readonly ProjectedBlock[] };
 	/** transactions just streamed INTO the projected next block */
 	'tx:streamed': { txs: readonly StreamedTx[] };
+	// ── proof-of-stake pages, additive ──
+	/** a slot opened: the protocol selected this stake-weighted proposer */
+	'pos:slot': { slot: number; epoch: number; index: number; proposerName: string; seed: string };
+	/** one committee vote arrived (stake units, not head counts) */
+	'pos:attestation': {
+		validatorName: string;
+		collectedStake: number;
+		neededStake: number;
+		totalStake: number;
+	};
+	/** the validator set's stakes/earnings changed */
+	'stake:changed': { validators: readonly ValidatorInfo[] };
+
 	/** recent mining-pool distribution (≈ next-block win odds) */
 	'miners:updated': {
 		pools: readonly PoolStat[];
