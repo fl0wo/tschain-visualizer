@@ -1,0 +1,211 @@
+/* Dark control-room look: the WebGL canvas fills the window, HUD panels
+   float over it on the left, controls dock at the bottom. */
+
+* {
+	box-sizing: border-box;
+}
+
+body {
+	margin: 0;
+	overflow: hidden;
+	font-family: ui-sans-serif, system-ui, sans-serif;
+	font-size: 14px;
+	color: #dce8f8;
+	background: #0b1020;
+}
+
+canvas {
+	display: block;
+}
+
+/* ── HUD ───────────────────────────────────────────────────────────── */
+
+.hud {
+	position: fixed;
+	top: 12px;
+	left: 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	width: 320px;
+	max-height: calc(100vh - 110px);
+	pointer-events: none; /* don't steal OrbitControls drags… */
+}
+
+.hud-panel {
+	pointer-events: auto; /* …but allow scrolling the log */
+	background: rgba(13, 20, 38, 0.85);
+	border: 1px solid #2a3a5a;
+	border-radius: 8px;
+	padding: 10px 12px;
+	backdrop-filter: blur(4px);
+}
+
+.hud-panel h2 {
+	margin: 0 0 6px;
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: #7fa3d4;
+}
+
+.hud-wallet {
+	display: flex;
+	gap: 8px;
+	align-items: baseline;
+	padding: 1px 0;
+}
+
+.hud-name {
+	font-weight: 600;
+	min-width: 52px;
+}
+
+.hud-addr,
+.hud-hash {
+	font-family: ui-monospace, monospace;
+	font-size: 12px;
+	color: #7fa3d4;
+}
+
+.hud-balance {
+	margin-left: auto;
+	font-weight: 700;
+	color: #f5c542;
+}
+
+.hud-mining {
+	margin-top: 4px;
+	font-family: ui-monospace, monospace;
+	font-size: 12px;
+	min-height: 1em;
+}
+
+.hud-spin {
+	display: inline-block;
+	animation: hud-spin 0.8s linear infinite;
+}
+
+@keyframes hud-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+.hud-ok {
+	color: #4cd97f;
+	font-weight: 700;
+}
+
+.hud-bad {
+	color: #ff5555;
+	font-weight: 700;
+	animation: hud-blink 1s steps(2) infinite;
+}
+
+@keyframes hud-blink {
+	50% {
+		opacity: 0.4;
+	}
+}
+
+.hud-log-panel {
+	flex: 1;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+}
+
+.hud-log {
+	overflow-y: auto;
+	min-height: 0;
+}
+
+.hud-log-line {
+	padding: 3px 0;
+	border-bottom: 1px solid rgba(42, 58, 90, 0.5);
+	line-height: 1.35;
+}
+
+.hud-log-success {
+	color: #8fe6ae;
+}
+
+.hud-log-error {
+	color: #ff9090;
+}
+
+/* ── tooltip ───────────────────────────────────────────────────────── */
+
+.tx-tooltip {
+	position: fixed;
+	z-index: 10;
+	padding: 6px 9px;
+	background: rgba(13, 20, 38, 0.95);
+	border: 1px solid #3d6bb3;
+	border-radius: 6px;
+	font-family: ui-monospace, monospace;
+	font-size: 12px;
+	pointer-events: none;
+	white-space: nowrap;
+}
+
+/* ── control panel ─────────────────────────────────────────────────── */
+
+.control-panel {
+	position: fixed;
+	bottom: 12px;
+	left: 50%;
+	transform: translateX(-50%);
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	align-items: center;
+	gap: 8px;
+	max-width: calc(100vw - 24px);
+	padding: 10px 14px;
+	background: rgba(13, 20, 38, 0.9);
+	border: 1px solid #2a3a5a;
+	border-radius: 10px;
+	backdrop-filter: blur(4px);
+}
+
+.ctl-group {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+}
+
+.control-panel button {
+	padding: 6px 12px;
+	border: 1px solid #3d6bb3;
+	border-radius: 6px;
+	background: #16243f;
+	color: #dce8f8;
+	font: inherit;
+	cursor: pointer;
+}
+
+.control-panel button:hover:not(:disabled) {
+	background: #1f3357;
+}
+
+.control-panel button:disabled {
+	opacity: 0.45;
+	cursor: wait;
+}
+
+.control-panel select,
+.control-panel input[type='number'] {
+	padding: 5px 6px;
+	border: 1px solid #2a3a5a;
+	border-radius: 6px;
+	background: #0e1730;
+	color: #dce8f8;
+	font: inherit;
+}
+
+.control-panel input[type='number'] {
+	width: 64px;
+}
