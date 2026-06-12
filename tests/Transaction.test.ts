@@ -53,6 +53,19 @@ describe('Transaction', () => {
 		expect(paid.hash()).not.toBe(free.hash());
 	});
 
+	it('includes kind and memo in the hash, with neutral defaults', () => {
+		// Settlement transactions (channel funding, rollup batches…) are
+		// labeled by `kind` and may carry data in `memo` — both must be
+		// covered by the signature, or a miner could relabel/strip them.
+		const plain = new Transaction(base);
+		expect(plain.kind).toBe('transfer');
+		expect(plain.memo).toBe('');
+		const labeled = new Transaction({ ...base, kind: 'channel-open' });
+		const withMemo = new Transaction({ ...base, memo: 'state:42' });
+		expect(labeled.hash()).not.toBe(plain.hash());
+		expect(withMemo.hash()).not.toBe(plain.hash());
+	});
+
 	it('excludes the signature from the hash', () => {
 		// The signature signs the hash, so the hash cannot include the
 		// signature — that would be circular. Attaching a signature must

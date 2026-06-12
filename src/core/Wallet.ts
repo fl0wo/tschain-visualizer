@@ -1,5 +1,6 @@
 import { ed25519 } from '@noble/curves/ed25519';
-import { bytesToHex, hexToBytes } from '@noble/hashes/utils';
+import { sha256 } from '@noble/hashes/sha2';
+import { bytesToHex, hexToBytes, utf8ToBytes } from '@noble/hashes/utils';
 import type { Transaction } from './Transaction';
 import type { Hex } from './types';
 
@@ -69,6 +70,25 @@ export class Wallet {
 	 * signature by definition. (Coinbase legitimacy is a consensus rule,
 	 * checked by the Blockchain, not a signature property.)
 	 */
+	/**
+	 * Sign an arbitrary MESSAGE (not a transaction): Layer-2 protocols
+	 * sign state — a Lightning channel update is a string both parties
+	 * sign off-chain. Same key, same Ed25519, same security story.
+	 */
+	signMessage(message: string): Hex {
+		const digest = sha256(utf8ToBytes(message));
+		return bytesToHex(ed25519.sign(digest, hexToBytes(this.privateKey)));
+	}
+
+	static verifyMessage(message: string, signature: Hex, address: Hex): boolean {
+		try {
+			const digest = sha256(utf8ToBytes(message));
+			return ed25519.verify(hexToBytes(signature), digest, hexToBytes(address));
+		} catch {
+			return false;
+		}
+	}
+
 	static verify(tx: Transaction): boolean {
 		if (tx.from === null || tx.signature === undefined) return false;
 		try {

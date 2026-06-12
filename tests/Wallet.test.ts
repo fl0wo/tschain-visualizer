@@ -75,6 +75,18 @@ describe('Wallet', () => {
 		expect(() => mallory.sign(tx)).toThrow();
 	});
 
+	it('signs and verifies arbitrary messages (channel states, not just txs)', () => {
+		// Layer-2 protocols sign STATE, not transactions: a Lightning
+		// channel update is a message both parties sign off-chain.
+		const alice = new Wallet();
+		const message = 'ch-1|7|30|20';
+		const signature = alice.signMessage(message);
+		expect(Wallet.verifyMessage(message, signature, alice.address)).toBe(true);
+		// tampered message or wrong signer must fail
+		expect(Wallet.verifyMessage('ch-1|7|31|19', signature, alice.address)).toBe(false);
+		expect(Wallet.verifyMessage(message, signature, new Wallet().address)).toBe(false);
+	});
+
 	it('refuses to verify a coinbase or unsigned transaction', () => {
 		const coinbase = new Transaction({
 			from: null,

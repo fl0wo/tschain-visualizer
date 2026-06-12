@@ -37,6 +37,19 @@ export interface TransactionData {
 	 */
 	readonly fee?: number;
 	/**
+	 * What this transaction IS: 'transfer' (default) for ordinary
+	 * payments, or a Layer-2 settlement label ('channel-open',
+	 * 'channel-close', 'justice', 'batch', …). Inside the hash — a miner
+	 * cannot relabel a settlement.
+	 */
+	readonly kind?: string;
+	/**
+	 * Opaque data payload (rollup batch data, channel state numbers…).
+	 * Inside the hash: this is the simulation's data-availability slot —
+	 * whatever is written here is permanently ON the chain.
+	 */
+	readonly memo?: string;
+	/**
 	 * Per-sender counter (0, 1, 2, …). Prevents replay: a signed
 	 * transaction can only be included once, at exactly its nonce position.
 	 */

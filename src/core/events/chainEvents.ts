@@ -27,6 +27,8 @@ export interface TxInfo {
 	readonly nonce: number;
 	readonly coinbase: boolean;
 	readonly signatureValid: boolean;
+	/** 'transfer' (default) or a Layer-2 settlement label */
+	readonly kind?: string;
 }
 
 export interface BlockInfo {

@@ -77,6 +77,55 @@ export class ChainModel {
 		return info;
 	}
 
+	/**
+	 * Register an EXTERNALLY-owned wallet (a Layer-2 module holding its
+	 * own keys — channel parties, vaults, sequencers) as a full citizen
+	 * of this chain's economy: it can mine, pay, and be paid by name.
+	 */
+	adoptWallet(name: string, wallet: Wallet): void {
+		if (this.wallets.has(name)) throw new Error(`Wallet "${name}" already exists`);
+		this.wallets.set(name, wallet);
+		this.events.emit('wallet:created', { name, address: wallet.address });
+	}
+
+	/**
+	 * Submit a transaction signed by a caller-held wallet — the Layer-2
+	 * settlement path (channel funding, justice txs, rollup batches).
+	 * Same mempool, same checks: settlements enjoy no special treatment.
+	 */
+	submitSigned(
+		from: Wallet,
+		to: Address,
+		amount: number,
+		options: { fee?: number; kind?: string; memo?: string } = {},
+	): Hex {
+		const pendingFromSender = this.mempool.pending.filter((tx) => tx.from === from.address).length;
+		const tx = new Transaction({
+			from: from.address,
+			to,
+			amount,
+			fee: options.fee ?? 0,
+			kind: options.kind,
+			memo: options.memo,
+			nonce: this.chain.getNonce(from.address) + pendingFromSender,
+			timestamp: Date.now(),
+		});
+		from.sign(tx);
+		this.mempool.addTransaction(tx); // throws on insufficient funds etc.
+		this.events.emit('tx:added', this.toTxInfo(tx));
+		return tx.hash();
+	}
+
+	/** Data availability: read a transaction's on-chain memo by hash. */
+	getTransactionMemo(txHash: Hex): string | undefined {
+		for (const block of this.chain.blocks) {
+			for (const tx of block.transactions) {
+				if (tx.hash() === txHash) return tx.memo;
+			}
+		}
+		return this.mempool.pending.find((tx) => tx.hash() === txHash)?.memo;
+	}
+
 	get walletNames(): string[] {
 		return [...this.wallets.keys()];
 	}
@@ -269,6 +318,7 @@ export class ChainModel {
 			nonce: tx.nonce,
 			coinbase: tx.isCoinbase(),
 			signatureValid: tx.isCoinbase() ? true : Wallet.verify(tx),
+			kind: tx.kind,
 		};
 	}
 

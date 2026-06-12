@@ -24,6 +24,10 @@ export class Transaction {
 	readonly amount: number;
 	/** miner tip on top of `amount`; signed like every other field */
 	readonly fee: number;
+	/** what this tx IS ('transfer' | L2 settlement labels); in the hash */
+	readonly kind: string;
+	/** opaque on-chain data payload (the data-availability slot) */
+	readonly memo: string;
 	readonly nonce: number;
 	readonly timestamp: number;
 	/** Mutable: a Wallet attaches this after construction. */
@@ -34,6 +38,8 @@ export class Transaction {
 		this.to = data.to;
 		this.amount = data.amount;
 		this.fee = data.fee ?? 0;
+		this.kind = data.kind ?? 'transfer';
+		this.memo = data.memo ?? '';
 		this.nonce = data.nonce;
 		this.timestamp = data.timestamp;
 		this.signature = data.signature;
@@ -60,6 +66,8 @@ export class Transaction {
 			to: this.to,
 			amount: this.amount,
 			fee: this.fee,
+			kind: this.kind,
+			memo: this.memo,
 			nonce: this.nonce,
 			timestamp: this.timestamp,
 		});
