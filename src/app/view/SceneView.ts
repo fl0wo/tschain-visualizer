@@ -97,12 +97,12 @@ export class SceneView {
 		const isoPolar = Math.acos(isoDir.y); // angle from the +y axis
 		const isoAzimuth = Math.atan2(isoDir.x, isoDir.z);
 		const target = new THREE.Vector3(2, theme.layout.cubeSize / 2, 0);
-		// Start at the LOWEST allowed inclination (iso polar + full swing,
-		// i.e. tilted as far from top-down as the constraints permit) —
-		// the user can still peek upward within the swing window.
+		// Start at the MOST top-down inclination the constraints allow
+		// (iso polar minus the full swing) — the user can still tilt
+		// down toward the horizon within the swing window.
 		const startDir = new THREE.Vector3().setFromSphericalCoords(
 			1,
-			isoPolar + theme.camera.polarSwing,
+			isoPolar - theme.camera.polarSwing,
 			isoAzimuth,
 		);
 		this.camera.position.copy(target).addScaledVector(startDir, theme.camera.distance);
