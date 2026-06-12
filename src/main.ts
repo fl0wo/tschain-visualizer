@@ -24,6 +24,9 @@ const hud = new Hud(app);
 
 new Controller(model, view, hud);
 
+// "magic shaders" button → bloom/post-processing on or off
+hud.onMagicToggle = (enabled) => view.setPostProcessing(enabled);
+
 const simulation = new Simulation(model);
 const speedControl = new SpeedControl(hud.rightStack); // mounts above the wallets panel
 speedControl.onChange = (scale) => {

@@ -15,6 +15,10 @@ export class Hud {
 	/** Right-side panel stack other components (SpeedControl) mount into. */
 	readonly rightStack: HTMLDivElement;
 
+	/** Composition root wires this to SceneView.setPostProcessing —
+	 *  the HUD doesn't know what "magic shaders" are, it just reports. */
+	onMagicToggle: ((enabled: boolean) => void) | null = null;
+
 	private readonly statusDot: HTMLElement;
 	private readonly wallets: HTMLElement;
 	private readonly ticker: HTMLElement;
@@ -34,14 +38,27 @@ export class Hud {
 		// hugs the corner, showing « to bring the panels back.
 		const stackWrap = document.createElement('div');
 		stackWrap.className = 'right-stack';
+		const buttons = document.createElement('div');
+		buttons.className = 'stack-buttons';
 		const toggle = document.createElement('button');
 		toggle.className = 'stack-toggle';
 		toggle.textContent = '»';
 		toggle.setAttribute('aria-label', 'collapse panels');
 		toggle.setAttribute('aria-expanded', 'true');
+
+		// magic shader toggle: post-processing (bloom etc.) on/off — the
+		// escape hatch for laptops whose fans disagree with the bloom pass
+		const magic = document.createElement('button');
+		magic.className = 'stack-toggle magic-toggle active';
+		magic.textContent = '✨';
+		magic.title = 'magic shaders: on';
+		magic.setAttribute('aria-pressed', 'true');
+		magic.setAttribute('aria-label', 'toggle magic shaders');
+
+		buttons.append(toggle, magic);
 		this.rightStack = document.createElement('div');
 		this.rightStack.className = 'right-stack-panels';
-		stackWrap.append(toggle, this.rightStack);
+		stackWrap.append(buttons, this.rightStack);
 		root.appendChild(stackWrap);
 
 		toggle.addEventListener('click', () => {
@@ -49,6 +66,20 @@ export class Hud {
 			toggle.textContent = collapsed ? '«' : '»';
 			toggle.setAttribute('aria-expanded', String(!collapsed));
 			toggle.setAttribute('aria-label', collapsed ? 'expand panels' : 'collapse panels');
+		});
+
+		let magicEnabled = true;
+		magic.addEventListener('click', () => {
+			magicEnabled = !magicEnabled;
+			magic.classList.toggle('active', magicEnabled);
+			magic.title = `magic shaders: ${magicEnabled ? 'on' : 'off'}`;
+			magic.setAttribute('aria-pressed', String(magicEnabled));
+			this.onMagicToggle?.(magicEnabled);
+			this.logEvent(
+				magicEnabled
+					? 'Magic shaders on — bloom and post-processing restored.'
+					: 'Magic shaders off — rendering directly, easier on the GPU (and the fans).',
+			);
 		});
 
 		const walletsPanel = document.createElement('div');

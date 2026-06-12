@@ -126,7 +126,13 @@ canvas {
 	display: none;
 }
 
-/* the rounded-square »/« toggle on the section's left edge */
+/* the column of rounded-square buttons on the section's left edge */
+.stack-buttons {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
 .stack-toggle {
 	flex-shrink: 0;
 	width: 28px;
@@ -147,6 +153,20 @@ canvas {
 .stack-toggle:hover {
 	border-color: var(--text-secondary);
 	color: var(--text);
+}
+
+/* ✨ magic shaders: blue-rimmed while on, grayed out while off */
+.magic-toggle {
+	font-size: 12px;
+	transition: border-color var(--hover-ms) ease, filter var(--hover-ms) ease;
+}
+
+.magic-toggle.active {
+	border-color: var(--blue);
+}
+
+.magic-toggle:not(.active) {
+	filter: grayscale(1) opacity(0.55);
 }
 
 @keyframes panels-in {

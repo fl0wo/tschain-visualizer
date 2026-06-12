@@ -53,6 +53,8 @@ export class SceneView {
 
 	private mining: MiningAnimation | null = null;
 	private breatheTime = 0;
+	/** post-processing on/off — the "magic shader" switch */
+	private postProcessing = true;
 
 	// camera auto-follow state
 	private interacting = false;
@@ -326,6 +328,17 @@ export class SceneView {
 
 	// ── pinned card (controller pushes live confirmations here) ────────
 
+	/**
+	 * The "magic shader" switch. Bloom is the GPU hog here — it runs a
+	 * chain of blur passes at several resolutions every frame — so when
+	 * off we skip the whole composer and render straight to the canvas.
+	 * Costs: no glow halos, no FXAA (slightly rougher edges), and HDR-
+	 * boosted colors simply clamp. Buys: a much cooler laptop.
+	 */
+	setPostProcessing(enabled: boolean): void {
+		this.postProcessing = enabled;
+	}
+
 	setPinnedConfirmations(count: number): void {
 		const span = this.pinned.card.querySelector<HTMLElement>('[data-confirmations]');
 		if (!span) return;
@@ -592,6 +605,10 @@ export class SceneView {
 		this.updateHoverCallout();
 		this.updatePinnedCallout();
 
-		this.composer.render();
+		if (this.postProcessing) {
+			this.composer.render();
+		} else {
+			this.renderer.render(this.scene, this.camera);
+		}
 	}
 }
