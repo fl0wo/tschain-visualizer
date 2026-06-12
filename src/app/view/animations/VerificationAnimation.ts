@@ -19,7 +19,7 @@ const SCAN_GEOMETRY = new THREE.PlaneGeometry(
 	theme.layout.txCubeSize * 1.7,
 );
 const SCAN_MATERIAL = new THREE.MeshBasicMaterial({
-	color: boosted(theme.colors.blue, theme.boost.seal),
+	color: boosted(theme.colors.active, theme.boost.seal),
 	transparent: true,
 	opacity: 0.35,
 	side: THREE.DoubleSide,
@@ -34,7 +34,7 @@ function makeCheckSprite(): THREE.Sprite {
 	ctx.font = '600 48px "Geist", ui-sans-serif, sans-serif';
 	ctx.textAlign = 'center';
 	ctx.textBaseline = 'middle';
-	ctx.fillStyle = cssColor(theme.colors.teal);
+	ctx.fillStyle = cssColor(theme.colors.valid);
 	ctx.fillText('✓', 32, 36);
 	const sprite = new THREE.Sprite(
 		new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvas), transparent: true, depthTest: false }),

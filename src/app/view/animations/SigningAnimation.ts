@@ -19,7 +19,7 @@ import { TextSprite } from './TextSprite';
 // signing starts while another runs, the key is *taken* — never cloned.
 const KEY_DIAMOND = new THREE.Mesh(
 	new THREE.OctahedronGeometry(0.09),
-	new THREE.MeshBasicMaterial({ color: boosted(theme.colors.blue, theme.boost.pulse) }),
+	new THREE.MeshBasicMaterial({ color: boosted(theme.colors.active, theme.boost.pulse) }),
 );
 let keyOwner: SigningAnimation | null = null;
 

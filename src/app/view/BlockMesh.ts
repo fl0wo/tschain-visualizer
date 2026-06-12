@@ -8,16 +8,16 @@ import { makeEdgeMaterial } from './edgeMaterials';
 import { boosted, cssColor, theme } from './theme';
 
 /**
- * The block is the core of the edge-lit aesthetic: a near-black body so
- * the geometry recedes, and a bright wireframe of its edges so the form
- * reads as a crisp isometric diamond. State lives entirely in the edge
- * color — teal = settled/confirmed (the "valid" accent), white =
- * genesis (the one block that was agreed, not mined), blue (breathing)
- * = latest, red-tinted gray = downstream of a break.
+ * The block is the core of the edge-lit aesthetic: a near-background
+ * body so the geometry recedes, and a bright wireframe of its edges so
+ * the form reads as a crisp isometric diamond. State lives entirely in
+ * the edge color, by palette ROLE — `valid` = settled/confirmed,
+ * `edge` = genesis (the one block that was agreed, not mined),
+ * `active` (breathing) = latest, `invalidDim` = downstream of a break.
  *
- * Settled blocks hold a STABLE teal: the confirmation ripple only
- * brightens that same hue (see ConfirmationAnimation), it never swaps
- * to a different color — color swaps read as glitches.
+ * Settled blocks hold a STABLE valid color: the confirmation ripple
+ * only brightens that same hue (see ConfirmationAnimation), it never
+ * swaps to a different color — color swaps read as glitches.
  *
  * Geometry and the state materials are module-level singletons shared by
  * every block; only the label canvas is per-instance.
@@ -40,17 +40,17 @@ const BODY_MATERIAL = new THREE.MeshStandardMaterial({
 
 const WIDTH = theme.edgeWidth.block;
 /** settled mined blocks: stable teal — confirmed history, the "valid" accent */
-const EDGE_NORMAL = makeEdgeMaterial(boosted(theme.colors.teal, theme.boost.edges), WIDTH);
+const EDGE_NORMAL = makeEdgeMaterial(boosted(theme.colors.valid, theme.boost.edges), WIDTH);
 /** genesis: neutral white — agreed upon, not mined, outside the teal economy */
 const EDGE_GENESIS = makeEdgeMaterial(boosted(theme.colors.edge, theme.boost.edges), WIDTH);
-const EDGE_DIM = makeEdgeMaterial(theme.colors.redDim, WIDTH);
+const EDGE_DIM = makeEdgeMaterial(theme.colors.invalidDim, WIDTH);
 /**
  * Single shared "latest block" material: only one block is the tip at a
  * time, and SceneView breathes its opacity globally — cheaper and
  * simpler than per-instance clones.
  */
 export const EDGE_LATEST = makeEdgeMaterial(
-	boosted(theme.colors.blue, theme.boost.latest),
+	boosted(theme.colors.active, theme.boost.latest),
 	WIDTH,
 	{ transparent: true },
 );
@@ -75,11 +75,11 @@ function drawLabel(
 	ctx.fillText(title, width / 2, 38);
 
 	ctx.font = '400 24px "Geist Mono", ui-monospace, monospace';
-	ctx.fillStyle = options.strike ? cssColor(theme.colors.red) : cssColor(theme.colors.textSecondary);
+	ctx.fillStyle = options.strike ? cssColor(theme.colors.invalid) : cssColor(theme.colors.textSecondary);
 	ctx.fillText(hash, width / 2, 74);
 	if (options.strike) {
 		const w = ctx.measureText(hash).width;
-		ctx.strokeStyle = cssColor(theme.colors.red);
+		ctx.strokeStyle = cssColor(theme.colors.invalid);
 		ctx.lineWidth = 3;
 		ctx.beginPath();
 		ctx.moveTo(width / 2 - w / 2, 66);

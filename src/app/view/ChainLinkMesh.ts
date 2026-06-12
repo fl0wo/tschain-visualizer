@@ -11,8 +11,8 @@ import type { Tweens } from './tween';
  */
 
 const LINK_GEOMETRY = new THREE.BoxGeometry(1, 0.05, 0.05);
-const LINK_VALID = new THREE.MeshBasicMaterial({ color: boosted(theme.colors.teal, theme.boost.edges) });
-const LINK_BROKEN = new THREE.MeshBasicMaterial({ color: boosted(theme.colors.red, theme.boost.edges) });
+const LINK_VALID = new THREE.MeshBasicMaterial({ color: boosted(theme.colors.valid, theme.boost.edges) });
+const LINK_BROKEN = new THREE.MeshBasicMaterial({ color: boosted(theme.colors.invalid, theme.boost.edges) });
 
 export class ChainLinkMesh {
 	readonly object: THREE.Mesh;
@@ -70,7 +70,7 @@ export class EnergyPulse {
 
 	constructor() {
 		this.material = new THREE.MeshBasicMaterial({
-			color: boosted(theme.colors.teal, theme.boost.pulse),
+			color: boosted(theme.colors.valid, theme.boost.pulse),
 			transparent: true,
 		});
 		this.mesh = new THREE.Mesh(new THREE.SphereGeometry(0.09, 12, 8), this.material);

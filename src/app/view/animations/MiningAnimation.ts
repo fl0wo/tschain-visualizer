@@ -44,7 +44,7 @@ export class MiningAnimation {
 			new THREE.MeshBasicMaterial({ color: theme.colors.blockBody, transparent: true, opacity: 0.3 }),
 		);
 		this.edgeMaterial = makeEdgeMaterial(
-			boosted(theme.colors.blue, theme.boost.latest),
+			boosted(theme.colors.active, theme.boost.latest),
 			theme.edgeWidth.block,
 			{ transparent: true },
 		);
@@ -91,7 +91,7 @@ export class MiningAnimation {
 		const ring = new THREE.Mesh(
 			RING_GEOMETRY,
 			new THREE.MeshBasicMaterial({
-				color: boosted(theme.colors.blue, theme.boost.shockwave),
+				color: boosted(theme.colors.active, theme.boost.shockwave),
 				transparent: true,
 				side: THREE.DoubleSide,
 				depthWrite: false,

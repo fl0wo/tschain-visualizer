@@ -8,40 +8,84 @@ import * as THREE from 'three';
  * properties injected at startup). Change a number here and the scene
  * and the DOM stay in agreement.
  *
- * Art direction: Vercel / Geist. Near-black, monochrome-first, edge-lit
- * geometry, and four accent colors that are only ever used with their
- * semantic meaning — blue = active/focus, teal = verified/valid,
- * amber = pending, red = invalid.
+ * Colors are organized as swappable PALETTES: every color slot has a
+ * semantic role (active / valid / pending / invalid, plus structural
+ * tones), and a palette fills those roles. Switch the look by changing
+ * the one `palette` line below — nothing else needs to know.
  */
-export const theme = {
-	colors: {
-		/** scene + page background */
-		background: 0x0a0a0a,
-		/** floor grid lines (fade out via fog) */
-		grid: 0x1a1a1a,
-		/** block body — near-black so only the edges speak */
-		blockBody: 0x111111,
-		/** primary edge-lit wireframe + primary text */
-		edge: 0xededed,
-		/** mined/settled tx cube edges (quiet, monochrome) */
-		edgeQuiet: 0x555555,
-		/** borders / structural gray */
-		border: 0x333333,
-		/** secondary text */
-		textSecondary: 0xa1a1a1,
+export interface Palette {
+	/** scene + page background */
+	background: number;
+	/** floor grid lines (fade out via fog) */
+	grid: number;
+	/** block body — near-background so only the edges speak */
+	blockBody: number;
+	/** primary edge-lit wireframe (genesis) + primary text */
+	edge: number;
+	/** mined/settled tx cube edges (quiet) */
+	edgeQuiet: number;
+	/** panel borders / structural lines */
+	border: number;
+	/** secondary text */
+	textSecondary: number;
+	/** selection, focus, active mining, latest block */
+	active: number;
+	/** verified signatures, intact links, confirmations, settled blocks */
+	valid: number;
+	/** mempool transactions awaiting mining */
+	pending: number;
+	/** broken links, rejections, failed verification */
+	invalid: number;
+	/** edges of blocks downstream of a break (dimmed invalid) */
+	invalidDim: number;
+}
 
-		// ── semantic accents (used sparingly) ──
-		/** selection, focus, active mining */
-		blue: 0x0070f3,
-		/** valid: signatures, intact links, confirmations, genesis */
-		teal: 0x50e3c2,
-		/** pending: mempool transactions awaiting mining */
-		amber: 0xf5a623,
-		/** invalid: broken links, rejections, failed verification */
-		red: 0xee0000,
-		/** edges of blocks downstream of a break: red-tinted gray */
-		redDim: 0x5a3333,
+export const palettes = {
+	/** the original look: near-black monochrome + Geist accents */
+	vercel: {
+		background: 0x0a0a0a,
+		grid: 0x1a1a1a,
+		blockBody: 0x111111,
+		edge: 0xededed,
+		edgeQuiet: 0x555555,
+		border: 0x333333,
+		textSecondary: 0xa1a1a1,
+		active: 0x0070f3,
+		valid: 0x50e3c2,
+		pending: 0xf5a623,
+		invalid: 0xee0000,
+		invalidDim: 0x5a3333,
 	},
+	/**
+	 * Cyberpunk Neon — the five stars:
+	 *   Oxford Blue #070F34 (background) · Zaffre #0313A6 (grid floor)
+	 *   Dark Violet #9201CB (active) · Hollywood Cerise #F715AB (pending)
+	 *   Fluorescent Cyan #34EDF3 (valid)
+	 * Structural tones (borders, text, bodies) are derived tints of
+	 * Oxford Blue/Zaffre; invalid is a neon red kept OUTSIDE the five so
+	 * errors never share a hue with pending cerise.
+	 */
+	cyberpunkNeon: {
+		background: 0x070f34,
+		grid: 0x0313a6,
+		blockBody: 0x0b1444,
+		edge: 0xe9f1ff,
+		edgeQuiet: 0x51619e,
+		border: 0x1c2a6e,
+		textSecondary: 0x93a4e8,
+		active: 0x9201cb,
+		valid: 0x34edf3,
+		pending: 0xf715ab,
+		invalid: 0xff1f3d,
+		invalidDim: 0x5a1f3a,
+	},
+} satisfies Record<string, Palette>;
+
+/* ── ACTIVE PALETTE — swap this one line to retheme everything ────── */
+const palette: Palette = palettes.cyberpunkNeon;
+
+export const theme = {
+	colors: palette,
 
 	/**
 	 * HDR brightness multipliers. The bloom pass only picks up pixels
@@ -211,10 +255,10 @@ export function applyCssVars(): void {
 	root.setProperty('--text', cssColor(theme.colors.edge));
 	root.setProperty('--text-secondary', cssColor(theme.colors.textSecondary));
 	root.setProperty('--border', cssColor(theme.colors.border));
-	root.setProperty('--blue', cssColor(theme.colors.blue));
-	root.setProperty('--teal', cssColor(theme.colors.teal));
-	root.setProperty('--amber', cssColor(theme.colors.amber));
-	root.setProperty('--red', cssColor(theme.colors.red));
+	root.setProperty('--active', cssColor(theme.colors.active));
+	root.setProperty('--valid', cssColor(theme.colors.valid));
+	root.setProperty('--pending', cssColor(theme.colors.pending));
+	root.setProperty('--invalid', cssColor(theme.colors.invalid));
 	root.setProperty('--hover-ms', `${theme.timing.hoverMs}ms`);
 	root.setProperty('--ticker-ms', `${theme.timing.tickerMs}ms`);
 	root.setProperty('--callout-lift', `${theme.callout.liftPx}px`);

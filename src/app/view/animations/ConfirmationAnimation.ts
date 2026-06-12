@@ -18,7 +18,7 @@ import type { Tweens } from '../tween';
 // swap — hue changes read as glitches. In-gamut per the boost caution
 // in theme.ts: past ~1.2 the clamp turns teal into a white flash.
 const RIPPLE_MATERIAL = makeEdgeMaterial(
-	boosted(theme.colors.teal, theme.boost.ripple),
+	boosted(theme.colors.valid, theme.boost.ripple),
 	theme.edgeWidth.block,
 );
 

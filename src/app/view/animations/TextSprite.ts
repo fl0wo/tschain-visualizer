@@ -47,7 +47,7 @@ export class TextSprite {
 				const full = this.ctx.measureText(line).width;
 				let x = width / 2 - full / 2;
 				this.ctx.textAlign = 'left';
-				this.ctx.fillStyle = cssColor(theme.colors.teal);
+				this.ctx.fillStyle = cssColor(theme.colors.valid);
 				this.ctx.fillText(line.slice(0, n), x, 100);
 				x += this.ctx.measureText(line.slice(0, n)).width;
 				this.ctx.fillStyle = cssColor(theme.colors.textSecondary);

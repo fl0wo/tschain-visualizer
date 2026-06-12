@@ -28,11 +28,11 @@ canvas {
 }
 
 .ok {
-	color: var(--teal);
+	color: var(--valid);
 }
 
 .bad {
-	color: var(--red);
+	color: var(--invalid);
 }
 
 /* subtle radial vignette toward pure black at the edges */
@@ -86,13 +86,13 @@ canvas {
 }
 
 .status-dot[data-state='valid'] {
-	background: var(--teal);
-	box-shadow: 0 0 6px var(--teal);
+	background: var(--valid);
+	box-shadow: 0 0 6px var(--valid);
 }
 
 .status-dot[data-state='invalid'] {
-	background: var(--red);
-	box-shadow: 0 0 6px var(--red);
+	background: var(--invalid);
+	box-shadow: 0 0 6px var(--invalid);
 	animation: blink 1s steps(2) infinite;
 }
 
@@ -162,7 +162,7 @@ canvas {
 }
 
 .magic-toggle.active {
-	border-color: var(--blue);
+	border-color: var(--active);
 }
 
 .magic-toggle:not(.active) {
@@ -231,7 +231,7 @@ canvas {
 
 .speed-row input[type='range'] {
 	flex: 1;
-	accent-color: var(--blue);
+	accent-color: var(--active);
 	cursor: pointer;
 }
 
@@ -270,11 +270,11 @@ canvas {
 }
 
 .ticker-success {
-	color: var(--teal);
+	color: var(--valid);
 }
 
 .ticker-error {
-	color: var(--red);
+	color: var(--invalid);
 }
 
 @keyframes ticker-in {
@@ -381,12 +381,12 @@ canvas {
 /* the pinned variant takes the focus accent and accepts clicks */
 .callout.pinned .callout-card {
 	pointer-events: auto;
-	border-color: var(--blue);
+	border-color: var(--active);
 }
 
 .callout.pinned .callout-dot,
 .callout.pinned .callout-line {
-	background: var(--blue);
+	background: var(--active);
 	opacity: 0.8;
 }
 
@@ -429,7 +429,7 @@ canvas {
 
 [data-confirmations] {
 	display: inline-block;
-	color: var(--teal);
+	color: var(--valid);
 }
 
 .odometer-tick {

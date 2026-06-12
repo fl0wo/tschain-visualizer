@@ -23,10 +23,10 @@ const TX_EDGES = new LineSegmentsGeometry().fromEdgesGeometry(new THREE.EdgesGeo
 const SEAL_GEOMETRY = new THREE.TorusGeometry(theme.layout.txCubeSize * 0.42, 0.018, 8, 32);
 
 const BODY_MATERIAL = new THREE.MeshBasicMaterial({ color: theme.colors.blockBody });
-const EDGE_PENDING = makeEdgeMaterial(boosted(theme.colors.amber, theme.boost.edges), theme.edgeWidth.tx);
+const EDGE_PENDING = makeEdgeMaterial(boosted(theme.colors.pending, theme.boost.edges), theme.edgeWidth.tx);
 const EDGE_MINED = makeEdgeMaterial(theme.colors.edgeQuiet, theme.edgeWidth.tx);
-const EDGE_REJECTED = makeEdgeMaterial(boosted(theme.colors.red, theme.boost.edges), theme.edgeWidth.tx);
-const SEAL_MATERIAL = new THREE.MeshBasicMaterial({ color: boosted(theme.colors.teal, theme.boost.seal) });
+const EDGE_REJECTED = makeEdgeMaterial(boosted(theme.colors.invalid, theme.boost.edges), theme.edgeWidth.tx);
+const SEAL_MATERIAL = new THREE.MeshBasicMaterial({ color: boosted(theme.colors.valid, theme.boost.seal) });
 
 export class TxCubeMesh {
 	readonly group = new THREE.Group();
