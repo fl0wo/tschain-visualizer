@@ -274,13 +274,11 @@ export function applyCssVars(): void {
 	root.setProperty('--hover-ms', `${theme.timing.hoverMs}ms`);
 	root.setProperty('--ticker-ms', `${theme.timing.tickerMs}ms`);
 	root.setProperty('--callout-lift', `${theme.callout.liftPx}px`);
-	// decompose the inclined leader into x/y components (and the 5px
-	// dot-gap along the same direction) so the CSS stays angle-agnostic
+	// decompose the inclined leader into x/y components so the CSS stays
+	// angle-agnostic; the line spans dot-center to dot-center, no gaps
 	const rad = (theme.callout.angleDeg * Math.PI) / 180;
 	root.setProperty('--callout-angle', `${theme.callout.angleDeg}deg`);
 	root.setProperty('--callout-run-x', `${(theme.callout.liftPx * Math.sin(rad)).toFixed(1)}px`);
 	root.setProperty('--callout-run-y', `${(theme.callout.liftPx * Math.cos(rad)).toFixed(1)}px`);
-	root.setProperty('--callout-gap-x', `${(5 * Math.sin(rad)).toFixed(2)}px`);
-	root.setProperty('--callout-gap-y', `${(5 * Math.cos(rad)).toFixed(2)}px`);
 	root.setProperty('--callout-dot', `${theme.callout.dotPx}px`);
 }

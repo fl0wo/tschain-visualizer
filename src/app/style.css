@@ -310,21 +310,19 @@ canvas {
 	width: var(--callout-dot);
 	height: var(--callout-dot);
 	border-radius: 50%;
-	background: var(--text-secondary);
+	background: #ffffff;
 	transform: translate(-50%, -50%);
 }
 
-/* the leader: a 1px vertical bar rotated about the anchor; the small
-   pre-rotation translate backs it 5px off the anchor dot along the
-   diagonal (matched by the length being 10px short of the full lift) */
+/* the leader: a 1px bar rotated about the anchor, spanning the full
+   dot-to-dot distance so it connects both dots seamlessly */
 .callout-line {
 	position: absolute;
 	left: 0;
 	top: 0;
 	width: 1px;
-	height: calc(var(--callout-lift) - 10px);
-	background: var(--text-secondary);
-	opacity: 0.55;
+	height: var(--callout-lift);
+	background: #ffffff;
 	transform-origin: 0 0;
 }
 
@@ -351,8 +349,7 @@ canvas {
 }
 
 .callout--tr .callout-line {
-	transform: translate(var(--callout-gap-x), calc(-1 * var(--callout-gap-y)))
-		rotate(calc(180deg + var(--callout-angle)));
+	transform: rotate(calc(180deg + var(--callout-angle)));
 }
 
 .callout--tr .callout-card {
@@ -368,8 +365,7 @@ canvas {
 }
 
 .callout--bl .callout-line {
-	transform: translate(calc(-1 * var(--callout-gap-x)), var(--callout-gap-y))
-		rotate(var(--callout-angle));
+	transform: rotate(var(--callout-angle));
 }
 
 .callout--bl .callout-card {
@@ -384,11 +380,6 @@ canvas {
 	border-color: var(--active);
 }
 
-.callout.pinned .callout-dot,
-.callout.pinned .callout-line {
-	background: var(--active);
-	opacity: 0.8;
-}
 
 @keyframes callout-in {
 	from {
