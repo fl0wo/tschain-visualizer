@@ -247,10 +247,13 @@ canvas {
 
 .left-stack {
 	position: fixed;
-	top: 48px;
+	/* anchored above the bottom ticker (≈40px tall) so the panels never
+	   overlap the scrolling log strip */
+	bottom: 52px;
 	left: 18px;
 	display: flex;
 	flex-direction: column;
+	justify-content: flex-end;
 	gap: 10px;
 	width: 340px;
 	z-index: 5;
