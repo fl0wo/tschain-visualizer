@@ -62,7 +62,9 @@ export const theme = {
 		/** the confirmation ripple flash */
 		ripple: 1.2,
 		pulse: 2.2,
-		seal: 1.6,
+		/** signature seal rings on tx cubes — in gamut, below the bloom
+		 *  threshold: a stable teal ring, not a glowing one */
+		seal: 1.2,
 		shockwave: 1.8,
 	},
 
