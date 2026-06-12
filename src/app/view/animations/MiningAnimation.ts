@@ -44,7 +44,7 @@ export class MiningAnimation {
 			new THREE.MeshBasicMaterial({ color: theme.colors.blockBody, transparent: true, opacity: 0.3 }),
 		);
 		this.edgeMaterial = makeEdgeMaterial(
-			boosted(theme.colors.blue, theme.boost.edges * 1.6),
+			boosted(theme.colors.blue, theme.boost.latest),
 			theme.edgeWidth.block,
 			{ transparent: true },
 		);

@@ -13,8 +13,11 @@ import type { Tweens } from '../tween';
  * block, tracing exactly the work that now protects each one.
  */
 
+// In-gamut teal (see the boost caution in theme.ts): the ripple should
+// read as a green-teal pulse sweeping back through history — push it
+// past ~1.2 and the clamp turns it into a white flash.
 const RIPPLE_MATERIAL = makeEdgeMaterial(
-	boosted(theme.colors.teal, theme.boost.seal),
+	boosted(theme.colors.teal, theme.boost.ripple),
 	theme.edgeWidth.block,
 );
 

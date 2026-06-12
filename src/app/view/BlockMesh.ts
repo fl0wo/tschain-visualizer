@@ -43,7 +43,7 @@ const EDGE_DIM = makeEdgeMaterial(theme.colors.redDim, WIDTH);
  * simpler than per-instance clones.
  */
 export const EDGE_LATEST = makeEdgeMaterial(
-	boosted(theme.colors.blue, theme.boost.edges * 1.6),
+	boosted(theme.colors.blue, theme.boost.latest),
 	WIDTH,
 	{ transparent: true },
 );

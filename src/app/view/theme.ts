@@ -48,12 +48,22 @@ export const theme = {
 	 * brighter than its threshold, so "things that glow" (energy pulse,
 	 * seals, shockwave) get pushed above 1.0 while bodies and text stay
 	 * below it. This is what keeps the scene precise instead of soupy.
+	 *
+	 * CAUTION when tuning up: once a channel crosses 1.0 the renderer
+	 * clamps it, the hue washes toward white, and bloom amplifies that —
+	 * teal × 2 reads as a white flash, not bright teal. Anything that
+	 * must stay recognizably COLORED belongs at ~1.0–1.2; only neutral
+	 * "energy" elements survive bigger pushes.
 	 */
 	boost: {
-		edges: 1.5,
-		pulse: 3.0,
-		seal: 2.0,
-		shockwave: 2.2,
+		edges: 1.0,
+		/** the breathing blue tip + mining ghost */
+		latest: 1.15,
+		/** the confirmation ripple flash */
+		ripple: 1.2,
+		pulse: 2.2,
+		seal: 1.6,
+		shockwave: 1.8,
 	},
 
 	/** fat-line edge widths, in screen pixels */
@@ -63,11 +73,14 @@ export const theme = {
 	},
 
 	/** UnrealBloomPass — restrained on purpose: a tight, dim halo on the
-	 *  brightest elements only, never a wash over the scene. */
+	 *  brightest elements only, never a wash over the scene. The 0.95
+	 *  threshold sits above the white edges (#ededed ≈ 0.93 luminance),
+	 *  so ONLY deliberately HDR-boosted elements (pulse, seals,
+	 *  shockwave) bloom at all. */
 	bloom: {
-		strength: 0.22,
+		strength: 0.15,
 		radius: 0.25,
-		threshold: 0.8,
+		threshold: 0.95,
 	},
 
 	/**
