@@ -3,6 +3,7 @@ import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
 import { LineSegmentsGeometry } from 'three/addons/lines/LineSegmentsGeometry.js';
 import type { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import type { BlockInfo } from '../model/ChainModel';
+import { FaceLabel } from './FaceLabel';
 import { TxCubeMesh } from './TxCubeMesh';
 import { makeEdgeMaterial } from './edgeMaterials';
 import { registerLabel } from './labels';
@@ -183,47 +184,16 @@ export class BlockMesh {
 
 	/**
 	 * Live-block summary painted on the TOP FACE: tx count and the
-	 * cumulative BTC moved. Part of the cube's geometry (scales with it,
-	 * unlike the floating labels), rotated 45° in-plane so the text
-	 * reads horizontally from the isometric camera.
+	 * cumulative BTC moved. One shared FaceLabel implementation with the
+	 * projection ghosts, so both carry the identical decal style.
 	 */
 	private addFaceStats(txCount: number, totalVolume?: number): void {
-		const canvas = document.createElement('canvas');
-		canvas.width = 256;
-		canvas.height = 128;
-		const ctx = canvas.getContext('2d')!;
-		ctx.textAlign = 'left'; // anchored to the border, not the middle
-		ctx.fillStyle = cssColor(theme.colors.edge);
-		ctx.font = '500 44px "Geist Mono", ui-monospace, monospace';
-		ctx.fillText(`${txCount.toLocaleString('en-US')} tx`, 8, totalVolume === undefined ? 76 : 52);
-		if (totalVolume !== undefined) {
-			ctx.fillStyle = cssColor(theme.colors.textSecondary);
-			ctx.font = '400 32px "Geist Mono", ui-monospace, monospace';
-			ctx.fillText(`${formatVolume(totalVolume)} BTC`, 8, 100);
-		}
-
-		const planeW = SIZE * 0.94;
-		const planeH = SIZE * 0.47;
-		const plane = new THREE.Mesh(
-			new THREE.PlaneGeometry(planeW, planeH),
-			new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(canvas), transparent: true }),
+		const label = new FaceLabel();
+		label.set(
+			`${txCount.toLocaleString('en-US')} tx`,
+			totalVolume === undefined ? undefined : `${formatVolume(totalVolume)} BTC`,
 		);
-		plane.rotation.x = -Math.PI / 2;
-		// 90°: the baseline lies ALONG a side of the square face (any
-		// non-multiple of 90° runs diagonally corner-to-corner). Of the
-		// four edge-aligned options, this is the one that reads left→right
-		// and right-side-up from the isometric camera.
-		plane.rotation.z = Math.PI / 2;
-		// Anchor at the face's top-left corner (as seen from the camera):
-		// with the 90° spin, the plane's glyph-top side maps to −x and the
-		// reading start to +z, so hug the x=−s border and start at z=+s.
-		const inset = 0.06;
-		plane.position.set(
-			-(SIZE / 2) + inset + planeH / 2,
-			SIZE / 2 + 0.012,
-			SIZE / 2 - inset - planeW / 2,
-		);
-		this.group.add(plane);
+		this.group.add(label.mesh);
 	}
 
 	/** The breathing blue tip treatment — exactly one block at a time. */

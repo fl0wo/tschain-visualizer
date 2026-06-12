@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
 import type { ProjectedBlock, StreamedTx } from '../../core/events/chainEvents';
 import { CUBE_EDGES, blockPosition } from './BlockMesh';
+import { FaceLabel } from './FaceLabel';
 import { TextSprite } from './animations/TextSprite';
 import { makeEdgeMaterial } from './edgeMaterials';
 import { boosted, prefersReducedMotion, theme } from './theme';
@@ -37,7 +38,7 @@ const GHOST_GEOMETRY = new THREE.BoxGeometry(SIZE, SIZE, SIZE);
 
 interface Ghost {
 	group: THREE.Group;
-	label: TextSprite;
+	label: FaceLabel;
 }
 
 /** unit cube for the per-tx arrival pops, scaled per pop by amount
@@ -83,7 +84,8 @@ export class ProjectionRow {
 		this.ghosts.forEach((ghost, i) => {
 			const projected = blocks[i]!;
 			ghost.label.set(
-				[`${projected.nTx.toLocaleString('en-US')} tx`, `~${projected.medianFee.toFixed(1)} sat/vB`],
+				`${projected.nTx.toLocaleString('en-US')} tx`,
+				`~${projected.medianFee.toFixed(1)} sat/vB`,
 			);
 			const target = blockPosition(tipDisplayIndex + 1 + i);
 			if (ghost.group.position.distanceToSquared(target) > 0.0001) {
@@ -164,9 +166,9 @@ export class ProjectionRow {
 		const group = new THREE.Group();
 		group.add(new THREE.Mesh(GHOST_GEOMETRY, GHOST_BODY));
 		group.add(new LineSegments2(CUBE_EDGES, GHOST_EDGES));
-		const label = new TextSprite(2.6);
-		label.sprite.position.y = SIZE / 2 + 0.7;
-		group.add(label.sprite);
+		// stats painted on the top face, identical style to mined blocks
+		const label = new FaceLabel();
+		group.add(label.mesh);
 		// new ghosts appear at the far end of the row
 		group.position.copy(blockPosition(0)); // placed properly on next update()
 		this.group.add(group);
