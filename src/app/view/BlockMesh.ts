@@ -207,9 +207,11 @@ export class BlockMesh {
 			new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(canvas), transparent: true }),
 		);
 		plane.rotation.x = -Math.PI / 2;
-		// 135°: the text baseline runs top-left corner → top-right corner
-		// of the face as seen from the iso camera (−45° reads upside down)
-		plane.rotation.z = (3 * Math.PI) / 4;
+		// 90°: the baseline lies ALONG a side of the square face (any
+		// non-multiple of 90° runs diagonally corner-to-corner). Of the
+		// four edge-aligned options, this is the one that reads left→right
+		// and right-side-up from the isometric camera.
+		plane.rotation.z = Math.PI / 2;
 		plane.position.y = SIZE / 2 + 0.012;
 		this.group.add(plane);
 	}
