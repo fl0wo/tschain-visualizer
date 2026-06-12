@@ -192,18 +192,20 @@ export class BlockMesh {
 		canvas.width = 256;
 		canvas.height = 128;
 		const ctx = canvas.getContext('2d')!;
-		ctx.textAlign = 'center';
+		ctx.textAlign = 'left'; // anchored to the border, not the middle
 		ctx.fillStyle = cssColor(theme.colors.edge);
 		ctx.font = '500 44px "Geist Mono", ui-monospace, monospace';
-		ctx.fillText(`${txCount.toLocaleString('en-US')} tx`, 128, totalVolume === undefined ? 76 : 52);
+		ctx.fillText(`${txCount.toLocaleString('en-US')} tx`, 8, totalVolume === undefined ? 76 : 52);
 		if (totalVolume !== undefined) {
 			ctx.fillStyle = cssColor(theme.colors.textSecondary);
 			ctx.font = '400 32px "Geist Mono", ui-monospace, monospace';
-			ctx.fillText(`${formatVolume(totalVolume)} BTC`, 128, 100);
+			ctx.fillText(`${formatVolume(totalVolume)} BTC`, 8, 100);
 		}
 
+		const planeW = SIZE * 0.94;
+		const planeH = SIZE * 0.47;
 		const plane = new THREE.Mesh(
-			new THREE.PlaneGeometry(SIZE * 0.94, SIZE * 0.47),
+			new THREE.PlaneGeometry(planeW, planeH),
 			new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(canvas), transparent: true }),
 		);
 		plane.rotation.x = -Math.PI / 2;
@@ -212,7 +214,15 @@ export class BlockMesh {
 		// four edge-aligned options, this is the one that reads left→right
 		// and right-side-up from the isometric camera.
 		plane.rotation.z = Math.PI / 2;
-		plane.position.y = SIZE / 2 + 0.012;
+		// Anchor at the face's top-left corner (as seen from the camera):
+		// with the 90° spin, the plane's glyph-top side maps to −x and the
+		// reading start to +z, so hug the x=−s border and start at z=+s.
+		const inset = 0.06;
+		plane.position.set(
+			-(SIZE / 2) + inset + planeH / 2,
+			SIZE / 2 + 0.012,
+			SIZE / 2 - inset - planeW / 2,
+		);
 		this.group.add(plane);
 	}
 
