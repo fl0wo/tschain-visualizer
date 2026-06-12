@@ -20,13 +20,36 @@ const TX_GEOMETRY = new THREE.BoxGeometry(
 	theme.layout.txCubeSize,
 );
 const TX_EDGES = new LineSegmentsGeometry().fromEdgesGeometry(new THREE.EdgesGeometry(TX_GEOMETRY));
-const SEAL_GEOMETRY = new THREE.TorusGeometry(theme.layout.txCubeSize * 0.42, 0.018, 8, 32);
+
+/** The seal is a flat SQUARE frame (outer square minus inner square) —
+ *  same visual language as the cube's square silhouette, no circles. */
+const SEAL_GEOMETRY = (() => {
+	const outer = theme.layout.txCubeSize * 0.46;
+	const inner = outer - 0.035; // frame thickness
+	const shape = new THREE.Shape();
+	shape.moveTo(-outer, -outer);
+	shape.lineTo(outer, -outer);
+	shape.lineTo(outer, outer);
+	shape.lineTo(-outer, outer);
+	shape.closePath();
+	const hole = new THREE.Path();
+	hole.moveTo(-inner, -inner);
+	hole.lineTo(-inner, inner);
+	hole.lineTo(inner, inner);
+	hole.lineTo(inner, -inner);
+	hole.closePath();
+	shape.holes.push(hole);
+	return new THREE.ShapeGeometry(shape);
+})();
 
 const BODY_MATERIAL = new THREE.MeshBasicMaterial({ color: theme.colors.blockBody });
 const EDGE_PENDING = makeEdgeMaterial(boosted(theme.colors.pending, theme.boost.edges), theme.edgeWidth.tx);
 const EDGE_MINED = makeEdgeMaterial(theme.colors.edgeQuiet, theme.edgeWidth.tx);
 const EDGE_REJECTED = makeEdgeMaterial(boosted(theme.colors.invalid, theme.boost.edges), theme.edgeWidth.tx);
-const SEAL_MATERIAL = new THREE.MeshBasicMaterial({ color: boosted(theme.colors.valid, theme.boost.seal) });
+const SEAL_MATERIAL = new THREE.MeshBasicMaterial({
+	color: boosted(theme.colors.valid, theme.boost.seal),
+	side: THREE.DoubleSide, // a flat frame must read from any orbit angle
+});
 
 export class TxCubeMesh {
 	readonly group = new THREE.Group();
@@ -49,11 +72,11 @@ export class TxCubeMesh {
 			state === 'pending' ? EDGE_PENDING : state === 'mined' ? EDGE_MINED : EDGE_REJECTED;
 	}
 
-	/** The persistent teal seal left behind by the SigningAnimation. */
+	/** The persistent seal frame left behind by the SigningAnimation. */
 	addSeal(): void {
 		if (this.seal) return;
 		this.seal = new THREE.Mesh(SEAL_GEOMETRY, SEAL_MATERIAL);
-		this.seal.rotation.x = Math.PI / 2;
+		this.seal.rotation.x = -Math.PI / 2; // lay the flat frame horizontal
 		this.seal.position.y = theme.layout.txCubeSize * 0.62;
 		this.group.add(this.seal);
 	}
