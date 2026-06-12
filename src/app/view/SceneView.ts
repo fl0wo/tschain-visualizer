@@ -280,6 +280,17 @@ export class SceneView {
 		}
 		this.blocks.forEach((block, i) => block.setLatest(i === displayIndex));
 		this.mempool.setAnchor(blockPosition(displayIndex).x);
+
+		// Backfill builds the chain instantly — the camera must arrive at
+		// the tip (where the projection / next block lives) just as
+		// instantly, not pan 30 units after the fact. Animated arrivals
+		// keep the eased auto-follow in finishMining.
+		if (info.backfill) {
+			const dx = blockPosition(displayIndex).x - 2 - this.controls.target.x;
+			this.controls.target.x += dx;
+			this.camera.position.x += dx;
+			this.mempool.group.position.x = blockPosition(displayIndex).x; // no easing either
+		}
 	}
 
 	// ── transaction choreography ───────────────────────────────────────
