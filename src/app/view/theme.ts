@@ -57,17 +57,18 @@ export const palettes = {
 		invalidDim: 0x5a3333,
 	},
 	/**
-	 * Cyberpunk Neon — the five stars:
-	 *   Oxford Blue #070F34 (background) · Zaffre #0313A6 (grid floor)
+	 * Cyberpunk Neon — the neon accents over the original near-black:
 	 *   Dark Violet #9201CB (active) · Hollywood Cerise #F715AB (pending)
 	 *   Fluorescent Cyan #34EDF3 (valid)
-	 * Structural tones (borders, text, bodies) are derived tints of
-	 * Oxford Blue/Zaffre; invalid is a neon red kept OUTSIDE the five so
-	 * errors never share a hue with pending cerise.
+	 * Background and grid stay the vercel near-black/gray (the Oxford
+	 * Blue #070F34 / Zaffre #0313A6 floor was tried and rolled back —
+	 * too loud). Other structural tones are blue-leaning tints; invalid
+	 * is a neon red kept OUTSIDE the palette stars so errors never share
+	 * a hue with pending cerise.
 	 */
 	cyberpunkNeon: {
-		background: 0x070f34,
-		grid: 0x0313a6,
+		background: 0x0a0a0a,
+		grid: 0x1a1a1a,
 		blockBody: 0x0b1444,
 		edge: 0xe9f1ff,
 		edgeQuiet: 0x51619e,
