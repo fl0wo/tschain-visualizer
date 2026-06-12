@@ -23,6 +23,7 @@ export class Simulation {
 	/** Only one proof-of-work search at a time, like one local miner. */
 	private mining = false;
 	private stopped = false;
+	private paused = false;
 	private timer: ReturnType<typeof setTimeout> | null = null;
 	private _timeScale = 1;
 
@@ -37,7 +38,45 @@ export class Simulation {
 
 	stop(): void {
 		this.stopped = true;
+		this.clearTimer();
+	}
+
+	// ── playback (debugger transport) ──────────────────────────────────
+
+	/**
+	 * Pause: stop GENERATING new actions. Everything already in motion —
+	 * a mining round mid-search, cubes mid-flight — runs to completion,
+	 * so the scene settles into a consistent state instead of freezing.
+	 */
+	pause(): void {
+		this.paused = true;
+		this.clearTimer();
+	}
+
+	/**
+	 * Advance exactly one beat: a payment, a new wallet, or a mining
+	 * round (whose animation plays at full smoothness — stepping skips
+	 * idle time, never the choreography). Implies pause. Some ticks
+	 * decide to do nothing (a broke sender skips its turn); those are
+	 * retried so every click of ⏭ produces something visible.
+	 */
+	stepOnce(): void {
+		this.pause();
+		for (let attempts = 0; attempts < 8; attempts++) {
+			if (this.tick()) return;
+		}
+	}
+
+	/** Resume auto-play at the current time scale. */
+	resume(): void {
+		if (!this.paused || this.stopped) return;
+		this.paused = false;
+		this.scheduleTick(200 / this._timeScale);
+	}
+
+	private clearTimer(): void {
 		if (this.timer !== null) clearTimeout(this.timer);
+		this.timer = null;
 	}
 
 	get timeScale(): number {
@@ -54,9 +93,10 @@ export class Simulation {
 		this._timeScale = Math.min(16, Math.max(0.05, value));
 		// Re-arm the pending tick at the new pace. Without this, dialing
 		// up from a slow setting would only take effect after the old
-		// (long) delay finally expired.
-		if (this.timer !== null && !this.stopped) {
-			clearTimeout(this.timer);
+		// (long) delay finally expired. While paused there is nothing to
+		// re-arm — the new pace applies on resume.
+		if (this.timer !== null && !this.stopped && !this.paused) {
+			this.clearTimer();
 			this.scheduleTick(this.nextDelay());
 		}
 	}
@@ -70,7 +110,7 @@ export class Simulation {
 	}
 
 	private scheduleTick(delay: number): void {
-		if (this.stopped) return;
+		if (this.stopped || this.paused) return;
 		this.timer = setTimeout(() => {
 			this.tick();
 			this.scheduleTick(this.nextDelay());
@@ -78,43 +118,45 @@ export class Simulation {
 	}
 
 	/**
-	 * One beat of network life. Priorities mirror reality:
-	 * an economy needs coins before it can have payments, payments
-	 * accumulate in the mempool, and miners batch them into blocks.
+	 * One beat of network life; returns whether anything visible
+	 * happened (stepOnce retries the silent beats). Priorities mirror
+	 * reality: an economy needs coins before it can have payments,
+	 * payments accumulate in the mempool, miners batch them into blocks.
 	 */
-	private tick(): void {
+	private tick(): boolean {
 		const funded = this.model.balances.filter((w) => w.balance > 0);
 
 		// Nobody has coins yet (or mining stopped paying out): mine first.
 		if (funded.length === 0) {
+			if (this.mining) return false;
 			void this.mine();
-			return;
+			return true;
 		}
 
 		// A batch is waiting — usually mine it (but keep some randomness
 		// so the pool sometimes grows bigger, like real fee markets).
-		if (this.model.pendingTransactions.length >= 3 && Math.random() < 0.7) {
+		if (!this.mining && this.model.pendingTransactions.length >= 3 && Math.random() < 0.7) {
 			void this.mine();
-			return;
+			return true;
 		}
 
 		// Occasionally someone new joins the network.
 		if (this.model.walletNames.length < Simulation.MAX_WALLETS && Math.random() < 0.12) {
 			this.model.createWallet(Simulation.NAMES[this.model.walletNames.length]!);
-			return;
+			return true;
 		}
 
 		// Default beat: somebody pays somebody.
-		this.randomPayment(funded);
+		return this.randomPayment(funded);
 	}
 
 	// ── behaviours ─────────────────────────────────────────────────────
 
-	private randomPayment(funded: Array<{ name: string; balance: number }>): void {
+	private randomPayment(funded: Array<{ name: string; balance: number }>): boolean {
 		const sender = funded[Math.floor(Math.random() * funded.length)]!;
 		const others = this.model.walletNames.filter((n) => n !== sender.name);
 		const receiver = others[Math.floor(Math.random() * others.length)];
-		if (!receiver) return;
+		if (!receiver) return false;
 
 		// What the sender can actually spend right now: balance minus what
 		// they already have pending in the pool.
@@ -133,8 +175,9 @@ export class Simulation {
 		// every payment tips the miner 1–3: the incentive to be included
 		const fee = 1 + Math.floor(Math.random() * 3);
 
-		if (!overspend && available < amount + fee) return; // genuinely broke: skip the beat
+		if (!overspend && available < amount + fee) return false; // genuinely broke: skip the beat
 		this.model.submitTransaction(sender.name, receiver, amount, fee);
+		return true;
 	}
 
 	private async mine(): Promise<void> {

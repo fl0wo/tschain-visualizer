@@ -36,4 +36,13 @@ const playback = new PlaybackControls(hud.rightStack); // mounts above the walle
 playback.onSpeedChange = (scale) => {
 	simulation.timeScale = scale;
 };
+playback.onStop = () => {
+	simulation.pause();
+	hud.logEvent('Simulation paused — ⏭ advances one action at a time, ▶ resumes auto-play.');
+};
+playback.onStep = () => simulation.stepOnce();
+playback.onContinue = () => {
+	simulation.resume();
+	hud.logEvent('Simulation resumed.');
+};
 simulation.start();

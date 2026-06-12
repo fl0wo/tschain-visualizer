@@ -249,6 +249,12 @@ canvas {
 	color: var(--text);
 }
 
+/* current transport mode: ▶ lit while auto-playing, ⏸ while paused */
+.playback-btn.active {
+	border-color: var(--active);
+	color: var(--text);
+}
+
 .playback-divider {
 	width: 1px;
 	height: 18px;
