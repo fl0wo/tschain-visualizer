@@ -102,7 +102,11 @@ export class Mempool {
 			nonce: 0,
 			timestamp: Date.now(),
 		});
-		const transactions = [...this.pending, reward];
+		// Snapshot the batch NOW: mining is async, and new transactions can
+		// arrive while the nonce search runs. Those belong to a future
+		// block, not this one.
+		const batch = [...this.pending];
+		const transactions = [...batch, reward];
 
 		const block = new Block({
 			index: this.chain.latestBlock.index + 1,
@@ -113,8 +117,10 @@ export class Mempool {
 		await block.mine(this.chain.difficulty, options);
 		this.chain.addBlock(block);
 
-		// Only now is it safe to drop them from the pool: they're history.
-		this.pending.length = 0;
+		// Drop ONLY the mined batch from the pool: transactions that were
+		// submitted while we mined are still waiting for the next block.
+		const mined = new Set(batch);
+		this.pending.splice(0, this.pending.length, ...this.pending.filter((tx) => !mined.has(tx)));
 		return block;
 	}
 }

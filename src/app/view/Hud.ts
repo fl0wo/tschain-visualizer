@@ -1,11 +1,10 @@
-import type { TxInfo } from '../model/ChainModel';
-
 /**
  * The HUD is plain HTML/CSS layered over the WebGL canvas — text is what
  * the DOM is best at, so we don't render text in 3D. It's the app's
- * educational layer: balances, the live mining readout, per-transaction
- * confirmations, and an event log that narrates every event in plain
- * English.
+ * educational layer, kept deliberately minimal: balances, the live
+ * mining readout, and an event log that narrates the simulated network
+ * activity in plain English. (Per-transaction detail lives in the hover
+ * tooltip instead of a panel.)
  *
  * Like the rest of the View it is write-only: methods set what to show,
  * and it never reaches into the Model.
@@ -14,7 +13,6 @@ export class Hud {
 	private readonly wallets: HTMLElement;
 	private readonly mining: HTMLElement;
 	private readonly chainStatus: HTMLElement;
-	private readonly selectedTx: HTMLElement;
 	private readonly log: HTMLElement;
 
 	constructor(root: HTMLElement) {
@@ -23,16 +21,12 @@ export class Hud {
 		panel.innerHTML = `
 			<div class="hud-panel">
 				<h2>Wallets</h2>
-				<div data-hud="wallets" class="hud-wallets"><em>none yet — create one</em></div>
+				<div data-hud="wallets" class="hud-wallets"><em>spinning up…</em></div>
 			</div>
 			<div class="hud-panel">
 				<h2>Chain</h2>
 				<div data-hud="chain-status">not validated yet</div>
 				<div data-hud="mining" class="hud-mining"></div>
-			</div>
-			<div class="hud-panel">
-				<h2>Selected transaction</h2>
-				<div data-hud="selected-tx"><em>click a sphere to inspect</em></div>
 			</div>
 			<div class="hud-panel hud-log-panel">
 				<h2>Event log</h2>
@@ -43,7 +37,6 @@ export class Hud {
 		this.wallets = panel.querySelector('[data-hud="wallets"]')!;
 		this.mining = panel.querySelector('[data-hud="mining"]')!;
 		this.chainStatus = panel.querySelector('[data-hud="chain-status"]')!;
-		this.selectedTx = panel.querySelector('[data-hud="selected-tx"]')!;
 		this.log = panel.querySelector('[data-hud="log"]')!;
 	}
 
@@ -75,25 +68,6 @@ export class Hud {
 			this.chainStatus.textContent = valid ? '✔ chain valid' : '✘ CHAIN INVALID';
 			this.chainStatus.className = valid ? 'hud-ok' : 'hud-bad';
 		}
-	}
-
-	setSelectedTx(tx: TxInfo | null, confirmations?: number): void {
-		if (!tx) {
-			this.selectedTx.innerHTML = '<em>click a sphere to inspect</em>';
-			return;
-		}
-		const sig = tx.coinbase
-			? 'coinbase (minted — no signature)'
-			: tx.signatureValid
-				? '✔ signature valid'
-				: '✘ signature INVALID';
-		this.selectedTx.innerHTML =
-			`<div>${tx.fromName} → ${tx.toName}: <b>${tx.amount}</b></div>` +
-			`<div class="hud-hash">${tx.hash.slice(0, 16)}…</div>` +
-			`<div>${sig}</div>` +
-			`<div>confirmations: <b>${confirmations ?? 0}</b>${
-				confirmations === 0 ? ' (pending)' : ''
-			}</div>`;
 	}
 
 	/** Append one plain-English line; newest on top. */

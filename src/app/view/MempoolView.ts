@@ -69,16 +69,19 @@ export class MempoolView {
 	}
 
 	/**
-	 * Mined! Send every pending sphere flying into the new block. The
-	 * target is given in world space; convert to this group's local space
-	 * since the group itself is offset by setAnchor().
+	 * Mined! Send the spheres of the MINED transactions flying into the
+	 * new block — transactions that arrived while mining ran stay in the
+	 * holding pattern for the next block. The target is world space;
+	 * convert to local since the group is offset by setAnchor().
 	 */
-	drainInto(worldTarget: THREE.Vector3): void {
+	drainInto(worldTarget: THREE.Vector3, minedHashes: Iterable<string>): void {
 		const localTarget = this.group.worldToLocal(worldTarget.clone());
-		for (const { mesh } of this.pending.values()) {
-			this.flying.push({ mesh, from: mesh.position.clone(), to: localTarget.clone(), t: 0 });
+		for (const hash of minedHashes) {
+			const sphere = this.pending.get(hash);
+			if (!sphere) continue; // coinbase has no pool sphere
+			this.flying.push({ mesh: sphere.mesh, from: sphere.mesh.position.clone(), to: localTarget.clone(), t: 0 });
+			this.pending.delete(hash);
 		}
-		this.pending.clear();
 	}
 
 	/** A rejected tx: brief red flash at the pool, then gravity wins. */

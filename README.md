@@ -4,11 +4,8 @@ An **educational blockchain built from scratch in TypeScript**, with a 3D
 visualization in the browser (three.js). No backend, no database, no
 network — everything runs locally, so every moving part is yours to poke.
 
-![healthy chain](docs/screenshot-healthy.png)
-*A valid chain: gold genesis block, mined blocks, transaction spheres, green `previousHash` links.*
-
-![tampered chain](docs/screenshot-tampered.png)
-*After tampering with block #1: the edited block turns red and the link to its child breaks.*
+![simulated network](docs/screenshot.png)
+*The ambient simulation: gold genesis block, mined blocks with transaction spheres, green `previousHash` links, pending payments hovering in the mempool, and the event log narrating it all.*
 
 ## The concepts (and where they live)
 
@@ -33,19 +30,28 @@ npm run dev         # 3D visualizer at http://localhost:5173
 npm run build       # type-check + production bundle
 ```
 
-## Using the visualizer
+## Watching the visualizer
 
-1. **Create wallet** (twice) — wallets are keypairs; they own nothing yet.
-2. **⛏ Mine block** — the coinbase reward mints the first coins. Watch the
-   ghost cube pulse while the nonce counter searches.
-3. **Sign & submit** — the payment waits in the floating mempool, then
-   flies into the next mined block.
-4. **Attempt double-spend** — two fully-signed transactions spending the
-   same balance; the event log explains why the second falls out of the sky.
-5. **Tamper!** — silently edit a past block, then watch validation paint
-   the edited cube red and break the link to its child.
-6. Click any transaction sphere to see its confirmations grow as you mine
-   more blocks. The **difficulty slider** makes each extra zero ~16× the work.
+The app runs itself — a simulated population of users acts out a small
+economy while you watch (and orbit the camera with the mouse):
+
+- **Wallets join over time.** Each new name in the HUD is a fresh Ed25519
+  keypair that owns nothing until it mines or gets paid.
+- **Coins are minted by mining.** The pulsing ghost cube is the
+  proof-of-work search — the HUD shows the live nonce and hash attempt;
+  the particle burst is a block landing.
+- **Payments flow randomly.** Signed transactions hover in the floating
+  mempool, then fly into the next mined block. Hover any sphere for
+  from/to/amount, its hash, and signature status.
+- **Some payments get refused.** Roughly one in eight deliberately
+  overspends; the red sphere falling out of the sky is the mempool's
+  balance check doing its job — a valid signature alone is not money.
+- **The chain re-validates after every block** — the HUD verdict stays
+  green as long as nobody rewrites history.
+
+For the interactive lessons that need an attacker (double-spend race,
+tampering with a past block), run the narrated console demo:
+`npm run demo`.
 
 ## Architecture
 
@@ -61,7 +67,8 @@ src/
   app/           Phase 2 — MVC
     model/       ChainModel: wraps core, emits typed events
     view/        SceneView, BlockMesh, ChainLinkMesh, MempoolView, Hud
-    controller/  Controller: DOM events → model calls, model events → view updates
+    controller/  Controller: model events → view updates
+                 Simulation: randomized "users" driving the model over time
   demo.ts        narrated console story (npx tsx src/demo.ts)
 tests/           vitest, one file per core class
 ```

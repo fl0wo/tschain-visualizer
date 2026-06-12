@@ -15,9 +15,6 @@ import { MempoolView } from './MempoolView';
  * pointer events (selecting a tx) go out through one callback.
  */
 export class SceneView {
-	/** The Controller subscribes here; the View knows nothing else about it. */
-	onTxSelected: ((tx: TxInfo) => void) | null = null;
-
 	private readonly renderer: THREE.WebGLRenderer;
 	private readonly scene = new THREE.Scene();
 	private readonly camera: THREE.PerspectiveCamera;
@@ -73,7 +70,6 @@ export class SceneView {
 		container.appendChild(this.tooltip);
 
 		this.renderer.domElement.addEventListener('pointermove', (e) => this.onPointerMove(e));
-		this.renderer.domElement.addEventListener('click', () => this.onClick());
 		window.addEventListener('resize', () => this.onResize());
 
 		this.renderer.setAnimationLoop(() => this.tick());
@@ -148,7 +144,10 @@ export class SceneView {
 			(this.miningGhost.material as THREE.Material).dispose();
 			this.miningGhost = null;
 		}
-		this.mempool.drainInto(blockPosition(info.index));
+		this.mempool.drainInto(
+			blockPosition(info.index),
+			info.transactions.map((tx) => tx.hash),
+		);
 		this.addBlock(info, true);
 	}
 
@@ -200,11 +199,6 @@ export class SceneView {
 		} else {
 			this.tooltip.style.display = 'none';
 		}
-	}
-
-	private onClick(): void {
-		const tx = this.pickTx();
-		if (tx) this.onTxSelected?.(tx);
 	}
 
 	private onResize(): void {

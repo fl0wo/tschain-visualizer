@@ -90,6 +90,26 @@ describe('Mempool', () => {
 		expect(() => pool.addTransaction(signedTx(alice, bob.address, 1, 5))).toThrow(/nonce/i);
 	});
 
+	it('does not drop transactions submitted while mining is in progress', async () => {
+		const { chain, pool, alice, bob } = await setup();
+		pool.addTransaction(signedTx(alice, bob.address, 10, 0));
+
+		// Mining yields to the event loop between hash attempts, so in a
+		// live app new transactions arrive mid-mine. They are NOT part of
+		// the block being mined — they must survive into the next one,
+		// not be wiped when the pool clears the mined batch.
+		chain.difficulty = 2; // enough attempts that we reliably interleave
+		const minePromise = pool.minePendingTransactions(bob.address, { yieldEvery: 1 });
+		await new Promise((resolve) => setTimeout(resolve, 0)); // let mining start
+		pool.addTransaction(signedTx(alice, bob.address, 5, 1));
+		const block = await minePromise;
+
+		// The block holds the first tx + coinbase; the late tx still waits.
+		expect(block.transactions).toHaveLength(2);
+		expect(pool.pending).toHaveLength(1);
+		expect(pool.pending[0]!.amount).toBe(5);
+	});
+
 	it('mines pending txs into a block with a coinbase reward, then clears them', async () => {
 		const { chain, pool, alice, bob } = await setup();
 		const miner = new Wallet();

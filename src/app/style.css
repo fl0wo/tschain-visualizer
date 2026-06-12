@@ -28,7 +28,7 @@ canvas {
 	flex-direction: column;
 	gap: 10px;
 	width: 320px;
-	max-height: calc(100vh - 110px);
+	max-height: calc(100vh - 24px);
 	pointer-events: none; /* don't steal OrbitControls drags… */
 }
 
@@ -151,61 +151,3 @@ canvas {
 	white-space: nowrap;
 }
 
-/* ── control panel ─────────────────────────────────────────────────── */
-
-.control-panel {
-	position: fixed;
-	bottom: 12px;
-	left: 50%;
-	transform: translateX(-50%);
-	display: flex;
-	flex-wrap: wrap;
-	justify-content: center;
-	align-items: center;
-	gap: 8px;
-	max-width: calc(100vw - 24px);
-	padding: 10px 14px;
-	background: rgba(13, 20, 38, 0.9);
-	border: 1px solid #2a3a5a;
-	border-radius: 10px;
-	backdrop-filter: blur(4px);
-}
-
-.ctl-group {
-	display: inline-flex;
-	align-items: center;
-	gap: 5px;
-}
-
-.control-panel button {
-	padding: 6px 12px;
-	border: 1px solid #3d6bb3;
-	border-radius: 6px;
-	background: #16243f;
-	color: #dce8f8;
-	font: inherit;
-	cursor: pointer;
-}
-
-.control-panel button:hover:not(:disabled) {
-	background: #1f3357;
-}
-
-.control-panel button:disabled {
-	opacity: 0.45;
-	cursor: wait;
-}
-
-.control-panel select,
-.control-panel input[type='number'] {
-	padding: 5px 6px;
-	border: 1px solid #2a3a5a;
-	border-radius: 6px;
-	background: #0e1730;
-	color: #dce8f8;
-	font: inherit;
-}
-
-.control-panel input[type='number'] {
-	width: 64px;
-}
