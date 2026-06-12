@@ -1,16 +1,18 @@
 /**
- * Composition root — the only file that knows all three MVC parts exist.
- * It builds them, hands the Model to the Controller, and gets out of the
- * way. Everything after this line is event-driven.
+ * Entry point + a deliberately tiny router.
+ *
+ *   /              → the catalog (HomePage)
+ *   /simulate/pow  → the proof-of-work visualizer
+ *
+ * History-API based (Vite's SPA fallback serves index.html for any
+ * path). Forward navigation re-mounts views in place; BACK uses a full
+ * reload — the WebGL app owns a renderer loop, timers and listeners,
+ * and a fresh boot is more reliable than a hand-written teardown.
  */
 import './app/style.css';
-import { Controller } from './app/controller/Controller';
-import { Simulation } from './app/controller/Simulation';
-import { ChainModel } from './app/model/ChainModel';
-import { Hud } from './app/view/Hud';
-import { PlaybackControls } from './app/view/PlaybackControls';
-import { SceneView } from './app/view/SceneView';
+import { mountPowApp } from './app/powApp';
 import { applyCssVars } from './app/view/theme';
+import { HomePage } from './home/HomePage';
 
 const app = document.querySelector<HTMLDivElement>('#app');
 if (!app) throw new Error('#app container missing in index.html');
@@ -18,31 +20,31 @@ if (!app) throw new Error('#app container missing in index.html');
 // Mirror the theme palette into CSS custom properties before any UI builds.
 applyCssVars();
 
-// Demo mining: difficulty 1 (~16 hash attempts per block instead of
-// ~256) stretched over wall-clock time by sleeping between attempts,
-// with a floor so lucky nonces still read as work. Real proof-of-work,
-// negligible battery — the laptop-fan-friendly configuration.
-const model = new ChainModel(1, { yieldEvery: 1, yieldMs: 60, minMs: 900 });
-const view = new SceneView(app);
-const hud = new Hud(app);
+let cleanup: (() => void) | null = null;
 
-new Controller(model, view, hud);
+function render(path: string): void {
+	cleanup?.();
+	cleanup = null;
+	app!.innerHTML = '';
 
-// "magic shaders" button → bloom/post-processing on or off
-hud.onMagicToggle = (enabled) => view.setPostProcessing(enabled);
+	if (path === '/simulate/pow') {
+		document.title = 'tschain — PoW simulation';
+		mountPowApp(app!);
+		return;
+	}
 
-const simulation = new Simulation(model);
-const playback = new PlaybackControls(hud.rightStack); // mounts above the wallets panel
-playback.onSpeedChange = (scale) => {
-	simulation.timeScale = scale;
-};
-playback.onStop = () => {
-	simulation.pause();
-	hud.logEvent('Simulation paused — ⏭ advances one action at a time, ▶ resumes auto-play.');
-};
-playback.onStep = () => simulation.stepOnce();
-playback.onContinue = () => {
-	simulation.resume();
-	hud.logEvent('Simulation resumed.');
-};
-simulation.start();
+	// anything unknown lands on the catalog
+	if (path !== '/') history.replaceState(null, '', '/');
+	document.title = 'tschain-visualizer';
+	const home = new HomePage(app!, navigate);
+	cleanup = () => home.dispose();
+}
+
+function navigate(path: string): void {
+	history.pushState(null, '', path);
+	render(path);
+}
+
+window.addEventListener('popstate', () => location.reload());
+
+render(location.pathname);
