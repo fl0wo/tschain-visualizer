@@ -239,7 +239,11 @@ export class ChainModel {
 			return {
 				index: block.index,
 				hashValid: block.hash === block.calculateHash(),
-				linkValid: parent === null || block.previousHash === parent.hash,
+				// Compare against the parent's RECALCULATED hash, not its
+				// stored one: if the parent's contents were edited, every
+				// child pointing at the old hash is the broken link. This
+				// is what makes tamper damage cascade downstream.
+				linkValid: parent === null || block.previousHash === parent.calculateHash(),
 				powValid: i === 0 || block.hash.startsWith('0'.repeat(this.chain.difficulty)),
 				signaturesValid: block.transactions.every((tx) => tx.isCoinbase() || Wallet.verify(tx)),
 			};

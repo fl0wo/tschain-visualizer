@@ -89,6 +89,12 @@ describe('ChainModel', () => {
 		// …while the genesis and block 1, before the edit, are untouched.
 		expect(report.blocks[0]!.hashValid).toBe(true);
 		expect(report.blocks[1]!.hashValid).toBe(true);
+		// The damage cascades DOWNSTREAM: block 3's previousHash points at
+		// what block 2's hash USED to be, so the 2→3 link is broken…
+		expect(report.blocks[3]!.linkValid).toBe(false);
+		// …while the link INTO the tampered block (1→2) is still intact:
+		// block 2's pointer at block 1 was never touched.
+		expect(report.blocks[2]!.linkValid).toBe(true);
 		expect(validations.map((v) => v.valid)).toEqual([true, false]);
 	});
 });
